@@ -1,0 +1,5 @@
+Cliente,Estado,Producto,Cantidad,Comentarios,Fecha de Creación
+Cliente no asignado,Sin estado,Producto C,10,Producto urgente,23/1/2025
+Cliente no asignado,Sin estado,Producto B,5,Producto con prioridad media,23/1/2025
+Julio Garcia,Sin estado,Producto B,1,,24/1/2025
+Julio Garcia,Sin estado,Producto B,2,,24/1/2025

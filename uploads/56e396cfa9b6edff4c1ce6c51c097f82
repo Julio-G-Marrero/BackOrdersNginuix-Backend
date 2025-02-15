@@ -1,0 +1,5 @@
+barcode,internalCode,description,price,family,subFamily
+1234567890123,P001,Producto A,150.75,Electrónica,Accesorios
+2345678901234,P002,Producto B,299.99,Hogar,Muebles
+3456789012345,P003,Producto C,450.5,Automotriz,Repuestos
+4567890123456,P004,Producto D,120.0,Deportes,Ropa
