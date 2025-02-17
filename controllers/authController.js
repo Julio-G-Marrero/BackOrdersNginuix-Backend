@@ -84,31 +84,46 @@ exports.authenticateUser = async (req, res, next) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (!token) {
+      console.log("🚫 No se recibió un token en la solicitud.");
       return res.status(401).json({ message: "No autorizado, token no presente" });
     }
 
+    console.log("📩 Token recibido:", token);
+
+    if (!process.env.JWT_SECRET) {
+      console.error("❌ Error: JWT_SECRET no está definido en el entorno.");
+      return res.status(500).json({ message: "Error interno del servidor: JWT_SECRET no está configurado" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("✅ Token decodificado correctamente:", decoded);
+
     req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) {
-      return res.status(401).json({ message: "Usuario no encontrado" });
+      console.log("🚫 Usuario no encontrado en la base de datos.");
+      return res.status(401).json({ message: "No autorizado, usuario no encontrado" });
     }
 
     // 🚀 Permitir que los admins accedan sin validación extra
     if (req.user.role === "admin") {
+      console.log("🚀 Usuario admin autenticado correctamente.");
       return next();
     }
 
-    // 🚫 Bloquear usuarios restringidos en cualquier endpoint protegido
+    // 🚫 Bloquear usuarios restringidos
     if (req.user.status === "restricted") {
+      console.log("🚫 Usuario restringido:", req.user.email);
       return res.status(403).json({ message: "Tu acceso ha sido restringido. Contacta al administrador." });
     }
 
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token inválido o expirado" });
+    console.error("❌ Error en la verificación del token:", error.message);
+    return res.status(401).json({ message: "Token inválido o expirado" });
   }
 };
+
 
 // Perfil del usuario autenticado
 exports.profile = async (req, res) => {
