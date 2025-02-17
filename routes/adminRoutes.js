@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require("../models/User"); // Importar con require
+const bcrypt = require("bcryptjs");
 
 router.get('/users/pending', protect, adminController.getPendingUsers);
 router.post('/users/approve/:id', protect, adminController.approveUser);
