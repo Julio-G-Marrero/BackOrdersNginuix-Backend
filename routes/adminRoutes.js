@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
-import User from "../models/User.js"; // Asegúrate de importar tu modelo de usuario
+import User from "../models/User"; // Asegúrate de importar tu modelo de usuario
 
 router.get('/users/pending', protect, adminController.getPendingUsers);
 router.post('/users/approve/:id', protect, adminController.approveUser);
