@@ -11,7 +11,7 @@ exports.protect = async (req, res, next) => {
       console.log("📩 Token recibido:", token); // 🔥 Ver qué token se está enviando
 
       // Verificar el token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, "supersecreto123");
       console.log("✅ Token decodificado:", decoded);
 
       // Buscar el usuario en la base de datos
@@ -50,7 +50,7 @@ exports.authenticateUser = async (req, res, next) => {
       return res.status(401).json({ message: "No autorizado, token no presente" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, "supersecreto123");
     const user = await User.findById(decoded.id); // ⚠️ Aquí se usaba `decoded._id`, debe ser `decoded.id`
 
     if (!user) {

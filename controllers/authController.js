@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
-    // process.env.JWT_SECRET,
+    // "supersecreto123",
     "supersecreto123",
     { expiresIn: "7d" } // Token válido por 7 días
   );
@@ -90,12 +90,12 @@ exports.authenticateUser = async (req, res, next) => {
 
     console.log("📩 Token recibido:", token);
 
-    if (!process.env.JWT_SECRET) {
+    if (!"supersecreto123") {
       console.error("❌ Error: JWT_SECRET no está definido en el entorno.");
       return res.status(500).json({ message: "Error interno del servidor: JWT_SECRET no está configurado" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, 'supersecreto123');
     console.log("✅ Token decodificado correctamente:", decoded);
 
     req.user = await User.findById(decoded.id).select("-password");
