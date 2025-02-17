@@ -88,13 +88,18 @@ exports.authenticateUser = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password"); // ✅ Obtener el usuario completo
+    req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
-    // ✅ Bloquear usuarios restringidos en cualquier endpoint protegido
+    // 🚀 Permitir que los admins accedan sin validación extra
+    if (req.user.role === "admin") {
+      return next();
+    }
+
+    // 🚫 Bloquear usuarios restringidos en cualquier endpoint protegido
     if (req.user.status === "restricted") {
       return res.status(403).json({ message: "Tu acceso ha sido restringido. Contacta al administrador." });
     }
