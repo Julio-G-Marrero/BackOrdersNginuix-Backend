@@ -23,10 +23,10 @@ router.post("/create-admin", async (req, res) => {
         }
 
         // Crear usuario admin
-        const hashedPassword = await bcrypt.hash("globalingco1234", 10);
+        const hashedPassword = await bcrypt.hash("12345678", 10);
         const admin = new User({
             name: "Admin",
-            email: "admin@email.com",
+            email: "adminglobalcar@email.com",
             password: hashedPassword,
             role: "admin",
             status: "active"
