@@ -3,7 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require("../models/User"); // Importar con require
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcrypt');
 
 router.get('/users/pending', protect, adminController.getPendingUsers);
 router.post('/users/approve/:id', protect, adminController.approveUser);
@@ -23,7 +23,8 @@ router.post("/create-admin", async (req, res) => {
         }
 
         // Crear usuario admin
-        const hashedPassword = await bcrypt.hash("12345678", 10);
+        const salt = await bcrypt.genSalt(10); // Generar un salt con factor 10
+        const hashedPassword = await bcrypt.hash("12345678", salt);
         const admin = new User({
             name: "Admin",
             email: "adminglobalcar@email.com",
