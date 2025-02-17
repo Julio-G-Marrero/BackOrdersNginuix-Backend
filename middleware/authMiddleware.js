@@ -8,28 +8,37 @@ exports.protect = async (req, res, next) => {
     try {
       // Extraer el token del encabezado
       token = req.headers.authorization.split(" ")[1];
+      console.log("📩 Token recibido:", token); // 🔥 Ver qué token se está enviando
 
       // Verificar el token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("✅ Token decodificado:", decoded);
 
-      // Buscar el usuario en la base de datos y adjuntarlo a `req.user`
+      // Buscar el usuario en la base de datos
       req.user = await User.findById(decoded.id).select("-password");
 
       if (!req.user) {
         return res.status(401).json({ message: "Usuario no encontrado" });
       }
 
-      // 🚀 **Permitir acceso sin verificación adicional si el usuario es admin**
+      // 🔥 Permitir que el admin pase sin más validaciones
       if (req.user.role === "admin") {
-        return next(); // Admin pasa directamente sin más validaciones
+        console.log("🚀 Usuario es administrador, acceso permitido sin validación.");
+        return next();
+      }
+
+      // Bloquear usuarios restringidos
+      if (req.user.status === "restricted") {
+        return res.status(403).json({ message: "Tu acceso ha sido restringido. Contacta al administrador." });
       }
 
       next();
     } catch (error) {
-      console.error("Error en la verificación del token:", error);
+      console.error("❌ Error en la verificación del token:", error);
       return res.status(401).json({ message: "Token inválido o expirado" });
     }
   } else {
+    console.log("🚫 No se recibió un token en la solicitud.");
     return res.status(401).json({ message: "No autorizado, falta token" });
   }
 };
