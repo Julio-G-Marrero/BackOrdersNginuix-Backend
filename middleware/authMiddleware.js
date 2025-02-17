@@ -56,7 +56,7 @@ exports.authenticateUser = async (req, res, next) => {
     res.status(401).json({ message: "Token inválido o expirado" });
   }
 };
-
+//deplo
 // Middleware para verificar roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
