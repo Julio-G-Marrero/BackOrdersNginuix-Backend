@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
+    // process.env.JWT_SECRET,
+    "supersecreto123",
     { expiresIn: "7d" } // Token válido por 7 días
   );
 };
