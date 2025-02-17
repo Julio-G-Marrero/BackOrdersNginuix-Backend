@@ -27,7 +27,7 @@ app.use(cors());
 // Conexión a MongoDB
 mongoose
     // .connect(process.env.MONGO_URI, {
-    .connect("mongodb+srv://juliogarciam785:GuLQYc9Nn7Wj1UyI@backorders.d4q8t.mongodb.net/?retryWrites=true&w=majority&appName=BackOrders", {
+    .connect("mongodb+srv://juliogarciam785:GuLQYc9Nn7Wj1Uyl@backorders.d4q8t.mongodb.net/?retryWrites=true&w=majority&appName=BackOrders", {
         useNewUrlParser: true,
         useUnifiedTopology: true,
     })
