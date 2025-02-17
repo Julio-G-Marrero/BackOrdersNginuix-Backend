@@ -12,6 +12,7 @@ const generateToken = (user) => {
 
 
 // Registro de usuarios
+
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -41,6 +42,42 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    console.log("📩 Intento de login con email:", email); // Log del intento de login
+
+    const user = await User.findOne({ email });
+    console.log("🔎 Usuario encontrado:", user); // Log de usuario encontrado
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      console.log("❌ Credenciales inválidas para:", email);
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    // ✅ Verificar si el usuario está restringido y bloquear acceso
+    if (user.status === "restricted") {
+      console.log("🚫 Usuario restringido:", email);
+      return res.status(403).json({ message: "Tu acceso ha sido restringido. Contacta al administrador." });
+    }
+
+    console.log("✅ Usuario autenticado:", email);
+
+    res.status(200).json({
+      token: generateToken(user),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status, // ✅ Incluir estado en la respuesta
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error en /auth/login:", error); // Log detallado del error
+    res.status(500).json({ message: "Error en el servidor", error: error.message });
+  }
+};
 
 exports.authenticateUser = (req, res, next) => {
   try {
