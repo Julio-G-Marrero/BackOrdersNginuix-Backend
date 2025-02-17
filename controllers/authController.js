@@ -80,7 +80,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.authenticateUser = (req, res, next) => {
+exports.authenticateUser = async (req, res, next) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (!token) {
@@ -88,7 +88,11 @@ exports.authenticateUser = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = await User.findById(decoded.id).select("-password"); // ✅ Obtener el usuario completo
+
+    if (!req.user) {
+      return res.status(401).json({ message: "Usuario no encontrado" });
+    }
 
     // ✅ Bloquear usuarios restringidos en cualquier endpoint protegido
     if (req.user.status === "restricted") {
