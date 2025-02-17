@@ -30,7 +30,7 @@ router.post("/create-admin", async (req, res) => {
             email: "adminglobalcar@email.com",
             password: hashedPassword,
             role: "admin",
-            status: "active"
+            status: "approved"
         });
 
         await admin.save();
