@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Conexión a MongoDB
+// Conexión a MongoDB Mnaula
 mongoose
     // .connect(process.env.MONGO_URI, {
     .connect("mongodb+srv://juliogarciam785:GuLQYc9Nn7Wj1Uyl@backorders.d4q8t.mongodb.net/?retryWrites=true&w=majority&appName=BackOrders", {
