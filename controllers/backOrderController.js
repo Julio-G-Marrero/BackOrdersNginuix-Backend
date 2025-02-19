@@ -1070,6 +1070,45 @@ exports.handlePartialDelivery = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
+exports.getAggregatedBackOrders = async (req, res) => {
+  try {
+    const backOrders = await BackOrder.find().populate("client");
+
+    // Objeto para agrupar por proveedor y producto
+    const aggregatedData = {};
+
+    backOrders.forEach(order => {
+      order.products.forEach(product => {
+        const provider = product.provider;
+        const productName = product.description;
+
+        if (!aggregatedData[provider]) {
+          aggregatedData[provider] = {};
+        }
+
+        if (!aggregatedData[provider][productName]) {
+          aggregatedData[provider][productName] = {
+            totalQuantity: 0,
+            details: []
+          };
+        }
+
+        aggregatedData[provider][productName].totalQuantity += product.quantity;
+        aggregatedData[provider][productName].details.push({
+          client: order.client?.name || "Cliente desconocido",
+          quantity: product.quantity,
+          status: product.status,
+          orderId: order._id
+        });
+      });
+    });
+
+    res.json(aggregatedData);
+  } catch (error) {
+    console.error("Error obteniendo backorders agregados:", error);
+    res.status(500).json({ error: error });
+  }
+}
 
 exports.revertProductStatus  = async (req, res) => {
   const { orderId, productId } = req.params;

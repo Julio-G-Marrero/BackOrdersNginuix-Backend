@@ -21,12 +21,16 @@ const {
     fulfillProduct,
     receiveProduct,
     handlePartialDelivery,
-    revertProductStatus
+    revertProductStatus,
+    getAggregatedBackOrders
 } = require('../controllers/backOrderController');
 const { protect } = require('../middleware/authMiddleware');
 const { validateBackOrder } = require('../middleware/validationMiddleware');
 
 const router = express.Router();
+
+//Consulta Para ver por provedores los prodcutos
+router.get("/aggregated",protect, getAggregatedBackOrders);
 
 // 🟢 **Primero rutas sin parámetros específicos**
 router.get('/export', protect, exportBackOrders);
@@ -72,5 +76,8 @@ router.put("/:orderId/products/:productId/receive", protect, receiveProduct);
 
 // 🔄 Ruta para revertir estado de un producto en un Back Order
 router.put("/:orderId/products/:productId/revert-status", protect, revertProductStatus);
+
+
+
 
 module.exports = router;
