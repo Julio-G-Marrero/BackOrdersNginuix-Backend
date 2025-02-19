@@ -177,8 +177,14 @@ exports.getBackOrders = async (req, res) => {
   const { client, status, startDate, endDate, sort } = req.query;
 
   const filters = {};
+  
+  // ✅ Filtrar por cliente
   if (client) filters.client = client;
-  if (status) filters.estado_general = status;
+  
+  // ✅ Filtrar por estado del Back Order
+  if (status) filters.statusGeneral = status;
+
+  // ✅ Filtrar por rango de fechas
   if (startDate || endDate) {
     filters.createdAt = {};
     if (startDate) filters.createdAt.$gte = new Date(startDate);
@@ -187,13 +193,14 @@ exports.getBackOrders = async (req, res) => {
 
   try {
     const backOrders = await BackOrder.find(filters)
-      .populate('client', 'name')
-      .populate('products.product', 'description')
-      .sort(sort ? { [sort]: 1 } : { createdAt: -1 }); // Ordenar resultados
+      .populate('client', 'name')  // ✅ Popula cliente con su nombre
+      .populate('products.product', 'description') // ✅ Popula productos con descripción
+      .populate('createdBy', 'name email') // ✅ Popula el usuario creador con nombre y correo
+      .sort(sort ? { [sort]: 1 } : { createdAt: -1 }); // ✅ Ordenar resultados
 
     res.status(200).json(backOrders);
   } catch (error) {
-    console.error('Error al listar Back Orders:', error);
+    console.error('❌ Error al listar Back Orders:', error);
     res.status(500).json({ message: 'Error al listar Back Orders', error });
   }
 };
@@ -969,7 +976,9 @@ exports.getBackOrderById = async (req, res) => {
   try {
     const backOrder = await BackOrder.findById(req.params.id)
       .populate("client", "name") // ✅ Obtiene el nombre del cliente
-      .populate("createdBy", "name email"); // ✅ Obtiene el nombre del usuario creador
+      .populate("createdBy", "name email") // ✅ Obtiene el nombre y correo del usuario creador
+      .populate("products.product", "description price") // ✅ Obtiene la descripción y precio del producto
+      .populate("products.provider", "name") // ✅ Si `provider` es un ObjectId, lo populará con su nombre
 
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado" });
