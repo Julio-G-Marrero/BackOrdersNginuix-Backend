@@ -1008,24 +1008,24 @@ exports.receiveProduct = async (req, res) => {
     console.log("📌 Producto ID:", productId);
     console.log("📌 Cantidad Recibida:", receivedQuantity);
 
-    // Obtener el Back Order
-    const backOrder = await BackOrder.findById(orderId);
+    // ✅ Obtener el Back Order con información del cliente
+    const backOrder = await BackOrder.findById(orderId).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
 
-    // Obtener el producto dentro del Back Order
+    // ✅ Obtener el producto dentro del Back Order
     const product = backOrder.products.find(p => p._id.toString() === productId);
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado en el Back Order." });
     }
 
-    // Validar cantidad recibida
+    // ✅ Validar cantidad recibida
     if (receivedQuantity < 0 || receivedQuantity > product.fulfilledQuantity) {
       return res.status(400).json({ message: "Cantidad recibida inválida." });
     }
 
-    // Actualizar el estado del producto según la cantidad recibida
+    // ✅ Determinar el nuevo estado del producto según la cantidad recibida
     let newStatus = "fulfilled"; // Por defecto, se considera completamente recibido
 
     if (receivedQuantity < product.fulfilledQuantity && receivedQuantity > 0) {
@@ -1036,11 +1036,11 @@ exports.receiveProduct = async (req, res) => {
       product.deniedQuantity = product.fulfilledQuantity;
     }
 
-    // Actualizar el estado y cantidades
+    // ✅ Actualizar el estado y cantidades
     product.status = newStatus;
     product.fulfilledQuantity = receivedQuantity;
 
-    // Agregar al historial
+    // ✅ Agregar al historial
     product.history.push({
       action: "Recepción Física",
       previousStatus: product.status,
@@ -1052,14 +1052,52 @@ exports.receiveProduct = async (req, res) => {
       comments: receivedQuantity === 0 ? "No se recibió el producto." : `Recibido ${receivedQuantity} unidades.`,
     });
 
-    // 🔹 **Actualizar estado general del Back Order**
+    // ✅ **Actualizar estado general del Back Order**
     updateBackOrderStatus(backOrder);
 
-    // Guardar cambios
+    // ✅ Guardar cambios
     await backOrder.save();
     console.log("✅ Recepción registrada correctamente.");
 
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    const productName = product.description;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+
+    // ✅ **Notificar al vendedor**
+    if (vendedor && vendedor.phone) {
+      const sellerMessage = `📦 ¡Recepción de producto confirmada!
+      Producto: ${productName}
+      Back Order ID: #${orderId}
+      Cliente: ${clientName}
+      Cantidad recibida: ${receivedQuantity}
+      Cantidad no recibida: ${product.deniedQuantity}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ **Notificar al gerente**
+    if (gerente && gerente.phone) {
+      const managerMessage = `Un producto ha sido recibido en el almacén.
+      Producto: ${productName}
+      Back Order ID: #${orderId}
+      Cliente: ${clientName}
+      Cantidad recibida: ${receivedQuantity}
+      Cantidad no recibida: ${product.deniedQuantity}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.status(200).json({ message: "Recepción registrada correctamente.", backOrder });
+
   } catch (error) {
     console.error("❌ Error en la recepción física del producto:", error);
     res.status(500).json({ message: "Error en la recepción física del producto.", error });
