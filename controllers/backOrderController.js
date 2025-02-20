@@ -69,7 +69,7 @@ exports.createBackOrder = async (req, res) => {
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
-
+    console.log(backOrder)
     // 📩 **Notificar al gerente**
     if (gerente.phone) {
       const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id}. Revisa la plataforma.`;
