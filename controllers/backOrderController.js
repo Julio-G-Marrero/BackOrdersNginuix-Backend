@@ -610,11 +610,11 @@ exports.confirmProvider = async (req, res) => {
     // ✅ Notificar al vendedor (WhatsApp & SMS)
     if (vendedor && vendedor.phone) {
       const sellerMessage = `📦 Un proveedor ha sido asignado a tu Back Order.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      🚚 Proveedor: ${providerData.name}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Proveedor: ${providerData.name}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
     } else {
@@ -624,11 +624,11 @@ exports.confirmProvider = async (req, res) => {
     // ✅ Notificar al gerente (WhatsApp & SMS)
     if (gerente && gerente.phone) {
       const managerMessage = `🔔 Se ha asignado un proveedor a un Back Order.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      🚚 Proveedor: ${providerData.name}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Proveedor: ${providerData.name}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
     } else {
