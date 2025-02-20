@@ -15,25 +15,27 @@ const generateToken = (user) => {
 // Registro de usuarios
 
 exports.register = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, phone, password, role } = req.body;
 
   try {
-    // 📌 Verificar si el usuario ya existe
-    const userExists = await User.findOne({ email });
+    // 📌 Verificar si el usuario ya existe por email o teléfono
+    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
     if (userExists) {
-      return res.status(400).json({ message: "El usuario ya está registrado" });
+      return res.status(400).json({ message: "El email o el teléfono ya están registrados" });
     }
 
     // 📌 Generar hash de la contraseña antes de guardar
-    const salt = await bcrypt.genSalt(10); // Generar un salt con factor 10
+    const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 📌 Crear usuario con la contraseña hasheada
+    // 📌 Crear usuario con la contraseña hasheada y estado inicial
     const user = await User.create({
       name,
       email,
-      password: hashedPassword, // Se guarda el hash, no la contraseña en texto plano
-      role: role || "sin definir", // Si no se envía el rol, asignar "sin definir"
+      phone,  // 📌 Nuevo campo obligatorio
+      password: hashedPassword,
+      role: role || "vendedor",  // 📌 Si no se envía el rol, se asigna "vendedor"
+      status: "pending_approval", // 📌 Nuevo usuario en estado "pendiente de aprobación"
     });
 
     res.status(201).json({ message: "Usuario registrado con éxito", user });

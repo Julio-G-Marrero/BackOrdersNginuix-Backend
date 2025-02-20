@@ -14,7 +14,7 @@ const providerRoutes = require("./routes/providerRoutes");
 const stats = require("./routes/statsRoutes"); 
 const userRoutes = require("./routes/userRoutes"); // ✅ Nueva ruta para obtener usuarios
 const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obtener usuarios
-
+const notificationRoutes = require('./routes/notifications');
 
 dotenv.config();
 
@@ -48,6 +48,7 @@ app.use("/api/v1/providers", providerRoutes);
 app.use("/api/v1/stats", stats);
 app.use("/api/v1/users", userRoutes); // ✅ Rutas de usuarios
 app.use("/api/v1/admin", adminRoutes); 
+app.use('/api/notifications', notificationRoutes);
 require('./jobs/scheduler');
 // Servidor
 const PORT = process.env.PORT || 5000;

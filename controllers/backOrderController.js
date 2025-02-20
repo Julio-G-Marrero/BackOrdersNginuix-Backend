@@ -6,7 +6,10 @@ const path = require('path');
 // Crear un Back Order
 const Provider = require("../models/Provider"); // ✅ Importamos el modelo de proveedores
 const Product = require('../models/Product');
-
+const {
+  notifySellerOnBackOrderCreation,
+  notifyManagerOnBackOrderCreation
+} = require("../services/whatsappNotificationService");
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
@@ -15,22 +18,34 @@ exports.createBackOrder = async (req, res) => {
     const cliente_id = new mongoose.Types.ObjectId(client);
     const vendedor_id = req.user.id; // ID del usuario autenticado
 
+    // Buscar el usuario vendedor
+    const vendedor = await User.findById(vendedor_id);
+    if (!vendedor) {
+      return res.status(404).json({ message: "Vendedor no encontrado" });
+    }
+
+    // Buscar al gerente (asumimos que hay un usuario con rol "gerente")
+    const gerente = await User.findOne({ role: "gerente" });
+    if (!gerente) {
+      return res.status(404).json({ message: "Gerente no encontrado" });
+    }
+
     // Convertir los IDs de productos en el array y agregar los nuevos datos
     const formattedProducts = products.map((product) => ({
-      product: new mongoose.Types.ObjectId(product.product), // Convierte a ObjectId
+      product: new mongoose.Types.ObjectId(product.product),
       description: product.description,
       quantity: product.quantity,
       comments: product.comments || "",
-      price: product.price || 0, // Almacena el precio
+      price: product.price || 0,
       family: product.family || "No especificado",
       subFamily: product.subFamily || "No especificado",
       barcode: product.barcode || "No disponible",
       internalCode: product.internalCode || "No disponible",
-      provider: "Diverso", // Por defecto
-      status: "pending", // Estado inicial del producto
-      fulfilledQuantity: 0, // Inicializado en 0
-      deniedQuantity: 0, // Inicializado en 0
-      history: [], // Historial vacío al crear el back order
+      provider: "Diverso",
+      status: "pending",
+      fulfilledQuantity: 0,
+      deniedQuantity: 0,
+      history: [],
     }));
 
     // Crear el Back Order con los datos convertidos
@@ -43,6 +58,12 @@ exports.createBackOrder = async (req, res) => {
 
     // Guardar el back order en la base de datos
     await backOrder.save();
+
+    // 📩 Notificar al vendedor
+    await notifySellerOnBackOrderCreation(vendedor_id, backOrder._id);
+
+    // 📩 Notificar al gerente
+    await notifyManagerOnBackOrderCreation(gerente._id, vendedor.name, backOrder._id);
 
     res.status(201).json({ message: "Back Order creado con éxito", backOrder });
   } catch (error) {
@@ -80,6 +101,7 @@ exports.rejectProduct = async (req, res) => {
   console.log("🔹 orderId recibido:", req.params.id);
   console.log("🔹 productId recibido:", req.params.productId);
   console.log("🔹 Cuerpo recibido:", req.body);
+
   const { id, productId } = req.params;
   const { comments } = req.body;
   const userName = req.user?.name || "Usuario desconocido"; // ✅ Obtener el nombre del usuario
@@ -94,36 +116,46 @@ exports.rejectProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado en el Back Order." });
     }
+
     const productData = await Product.findById(product.product);
+    const previousStatus = product.status;
+    const productName = productData?.description || "Producto sin nombre";
 
-    const previousStatus = product.status; // ✅ Guardar estado previo
-    const productName = productData.description || "Producto sin nombre"; // ✅ Asegurar que siempre haya un nombre
-
-    // ✅ Asignar la cantidad denegada como la cantidad original
+    // ✅ Marcar como denegado y registrar historial
     product.status = "denied";
     product.comments = comments || "Sin comentarios";
-    product.deniedQuantity = product.quantity; // ✅ Se almacena en el objeto original del producto
-    product.fulfilledQuantity = 0; // ✅ Asegurar que no hay surtido
-    // ✅ Asegurar que `history` exista antes de hacer `push()`
+    product.deniedQuantity = product.quantity;
+    product.fulfilledQuantity = 0;
+
     if (!product.history) {
       product.history = [];
     }
 
-    // 🔹 Agregar al historial con toda la información relevante
     product.history.push({
-      action: `Producto denegado - ${productName}`,      
+      action: `Producto denegado - ${productName}`,
       previousStatus,
       newStatus: "denied",
-      updatedBy: userName, // ✅ Almacena el nombre del usuario
+      updatedBy: userName,
       updatedAt: new Date(),
-      deniedQuantity: product.deniedQuantity, // ✅ Se almacena en el historial también
-      fulfilledQuantity: 0, // ✅ Se deja claro que no hubo surtido
+      deniedQuantity: product.deniedQuantity,
+      fulfilledQuantity: 0,
       comments: comments || "Sin comentarios",
     });
 
-    // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
-    await backOrder.save(); // ✅ Guardar los cambios en la base de datos
+    await backOrder.save();
+
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    if (vendedor && vendedor.phone) {
+      await notifySellerOnRejection(vendedor.phone, id, productName, comments);
+    }
+
+    if (gerente && gerente.phone) {
+      await notifyManagerOnProductRejection(gerente.phone, id, productName, userName, comments);
+    }
 
     res.json({ message: "Producto denegado correctamente.", product });
   } catch (error) {
