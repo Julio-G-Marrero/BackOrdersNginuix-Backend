@@ -1060,7 +1060,7 @@ exports.approveOrRejectProduct = async (req, res) => {
     console.log("📌 Crear nuevo Back Order:", createNewBackOrder);
     console.log("📌 Cantidad para nuevo Back Order:", remainingQuantity);
 
-    const backOrder = await BackOrder.findById(orderId);
+    const backOrder = await BackOrder.findById(orderId).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -1080,7 +1080,48 @@ exports.approveOrRejectProduct = async (req, res) => {
       product.comments = comments || "Rechazado por el cliente.";
     }
 
-    // 🔹 Si el vendedor elige crear un nuevo Back Order con los productos faltantes
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    const productName = product.description;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+
+    // ✅ **Notificar al vendedor**
+    if (vendedor && vendedor.phone) {
+      const sellerMessage = decision === "approve"
+        ? `✅ Tu Back Order ha sido aprobado.
+        🔹 Producto: ${productName}
+        📦 Back Order ID: #${orderId}
+        🏪 Cliente: ${clientName}
+        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`
+        : `❌ Tu producto '${productName}' en Back Order #${orderId} ha sido rechazado.
+        📝 Motivo: ${comments || "No especificado"}
+        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ **Notificar al gerente**
+    if (gerente && gerente.phone) {
+      const managerMessage = decision === "approve"
+        ? `📌 El vendedor ${vendedor.name} ha aprobado el Back Order #${orderId}.
+        🔹 Producto: ${productName}
+        🏪 Cliente: ${clientName}
+        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`
+        : `⚠️ El vendedor ${vendedor.name} ha rechazado un producto en el Back Order #${orderId}.
+        🔹 Producto: ${productName}
+        📝 Motivo: ${comments || "No especificado"}
+        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
+    // 🔹 **Si el vendedor elige crear un nuevo Back Order con los productos faltantes**
     if (createNewBackOrder && remainingQuantity > 0) {
       const newBackOrder = new BackOrder({
         client: backOrder.client,
@@ -1118,7 +1159,7 @@ exports.approveOrRejectProduct = async (req, res) => {
       console.log(`✅ Nuevo Back Order creado con ID: ${newBackOrder._id}`);
     }
 
-    // 🔹 Agregar al historial del producto original
+    // 🔹 **Agregar al historial del producto original**
     product.history.push({
       action: "Aprobación del vendedor",
       previousStatus,
