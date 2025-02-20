@@ -66,18 +66,16 @@ exports.createBackOrder = async (req, res) => {
     const clientName = cliente ? cliente.name : "Cliente Desconocido";
     // 📩 **Notificar al vendedor**
     if (vendedor.phone) {
-      const sellerMessage = `¡Nuevo Back Order creado! 
-      ID: #${backOrder._id} 
+      const sellerMessage = `¡Nuevo Back Order creado! ID: #${backOrder._id} 
       Cliente: ${clientName} 
       Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
-  
       await sendNotification(vendedor.phone, sellerMessage);
   } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
   }
     // 📩 **Notificar al gerente**
     if (gerente.phone) {
-      const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id}. Revisa la plataforma.`;
+      const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id} para el cliente:${clientName}. Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
       await sendNotification(gerente.phone, managerMessage);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
@@ -169,17 +167,47 @@ exports.rejectProduct = async (req, res) => {
     const vendedor = await User.findById(backOrder.createdBy);
     const gerente = await User.findOne({ role: "gerente" });
 
+    // ✅ Enviar notificación al vendedor
     if (vendedor && vendedor.phone) {
-      await notifySellerOnRejection(vendedor.phone, id, productName, comments);
+      const sellerMessage = `⚠️ Tu producto ha sido denegado.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      📝 Motivo: ${comments || "No especificado"}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage); // Enviar por SMS
+      await sendWhatsAppMessage(vendedor.phone, {
+        first_name: vendedor.name,
+        order_id: id,
+        product_name: productName,
+        reason: comments || "No especificado"
+      }); // Enviar por WhatsApp
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
+    // ✅ Enviar notificación al gerente
     if (gerente && gerente.phone) {
-      await notifyManagerOnProductRejection(gerente.phone, id, productName, userName, comments);
+      const managerMessage = `⚠️ Un producto ha sido denegado por ${userName}.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      📝 Motivo: ${comments || "No especificado"}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage); // Enviar por SMS
+      await sendWhatsAppMessage(gerente.phone, {
+        first_name: gerente.name,
+        order_id: id,
+        product_name: productName,
+        reason: comments || "No especificado"
+      }); // Enviar por WhatsApp
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
 
     res.json({ message: "Producto denegado correctamente.", product });
   } catch (error) {
-    console.error("Error al denegar el producto:", error);
+    console.error("❌ Error al denegar el producto:", error);
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
