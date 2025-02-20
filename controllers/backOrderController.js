@@ -23,12 +23,9 @@ const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
-
-    // Convertir `client` y `product` a ObjectId
-    const cliente_id = new mongoose.Types.ObjectId(client);
     const vendedor_id = req.user.id; // ID del usuario autenticado
 
-    // Buscar el usuario vendedor
+    // Buscar al vendedor
     const vendedor = await User.findById(vendedor_id);
     if (!vendedor) {
       return res.status(404).json({ message: "Vendedor no encontrado" });
@@ -40,7 +37,11 @@ exports.createBackOrder = async (req, res) => {
       return res.status(404).json({ message: "Gerente no encontrado" });
     }
 
-    // Convertir los IDs de productos en el array y agregar los nuevos datos
+    // Convertir el ID del cliente y verificar si existe
+    const cliente = await Customer.findById(client);
+    const clientName = cliente ? cliente.name : "Cliente Desconocido";
+
+    // Convertir los productos en el formato adecuado
     const formattedProducts = products.map((product) => ({
       product: new mongoose.Types.ObjectId(product.product),
       description: product.description,
@@ -58,31 +59,47 @@ exports.createBackOrder = async (req, res) => {
       history: [],
     }));
 
-    // Crear el Back Order con los datos convertidos
+    // Crear el Back Order con los datos formateados
     const backOrder = new BackOrder({
-      client: cliente_id,
+      client: cliente ? cliente._id : null,
       products: formattedProducts,
       createdBy: vendedor_id,
       statusGeneral: "pending",
     });
 
-    // Guardar el back order en la base de datos
+    // Guardar el Back Order en la base de datos
     await backOrder.save();
-    const cliente = await Customer.findById(backOrder.client);
-    const clientName = cliente ? cliente.name : "Cliente Desconocido";
-    // 📩 **Notificar al vendedor**
+
+    // **📩 Notificar al vendedor por WhatsApp**
     if (vendedor.phone) {
-      const sellerMessage = `¡Nuevo Back Order creado! ID: #${backOrder._id} 
-      Cliente: ${clientName} 
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
-      await sendNotification(vendedor.phone, sellerMessage);
-  } else {
+      await sendNotification(vendedor.phone, {
+        recipient_name: vendedor.name,
+        event_type: "Creación de Back Order",
+        product_name: "Varios productos",
+        order_id: backOrder._id.toString(),
+        client_name: clientName,
+        event_date: new Date().toLocaleDateString(),
+        order_status: "Pendiente",
+        comments: "Por favor revisa los detalles en la plataforma.",
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders",
+      });
+    } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
-  }
-    // 📩 **Notificar al gerente**
+    }
+
+    // **📩 Notificar al gerente por WhatsApp**
     if (gerente.phone) {
-      const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id} para el cliente:${clientName}. Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, {
+        recipient_name: gerente.name,
+        event_type: "Nuevo Back Order creado",
+        product_name: "Varios productos",
+        order_id: backOrder._id.toString(),
+        client_name: clientName,
+        event_date: new Date().toLocaleDateString(),
+        order_status: "Pendiente",
+        comments: `Creado por el vendedor ${vendedor.name}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase",
+      });
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -91,7 +108,7 @@ exports.createBackOrder = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error al crear Back Order:", error);
-    res.status(400).json({ message: "Error al crear Back Order", error });
+    res.status(500).json({ message: "Error al crear Back Order", error });
   }
 };
 
