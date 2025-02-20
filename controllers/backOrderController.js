@@ -170,7 +170,7 @@ exports.rejectProduct = async (req, res) => {
 
     // ✅ Enviar notificación al vendedor
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `⚠️ Tu producto ha sido denegado.
+      const sellerMessage = `Tu producto ha sido denegado.
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
@@ -184,7 +184,7 @@ exports.rejectProduct = async (req, res) => {
 
     // ✅ Enviar notificación al gerente
     if (gerente && gerente.phone) {
-      const managerMessage = `⚠️ Un producto ha sido denegado por ${userName}.
+      const managerMessage = `Un producto ha sido denegado por ${userName}.
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
