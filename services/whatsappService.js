@@ -1,23 +1,30 @@
-require('dotenv').config();
 const twilio = require('twilio');
 
-// Configurar cliente de Twilio con las nuevas credenciales
-const client = twilio("ACa5af537e7de8d375fc557c8417d8fb4a", "f8f7a2e9638c787f698e5dab72a4273f");
+// 🔒 Hardcodeamos las credenciales para pruebas (Úsalo solo temporalmente)
+const ACCOUNT_SID = "SKad33a226d9dc3e76c270a445a02ff9a2";
+const AUTH_TOKEN = "T5z3He3Lpteo3yFLbotREZsmWOgP5lTf";
+const WHATSAPP_NUMBER = "whatsapp:+14155238886";
+const TEMPLATE_SID = "HXb5b62575e6e4ff6129ad7c8efe1f983e";
+
+// Configurar cliente de Twilio con credenciales fijas
+const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
 const sendWhatsAppMessage = async (to, variables) => {
     try {
-        if (!process.env.TWILIO_WHATSAPP_NUMBER || !process.env.TWILIO_TEMPLATE_SID) {
-            console.error("❌ ERROR: Faltan configurar las variables de entorno.");
-            console.error("TWILIO_WHATSAPP_NUMBER:", process.env.TWILIO_WHATSAPP_NUMBER || "No configurado ❌");
-            console.error("TWILIO_TEMPLATE_SID:", process.env.TWILIO_TEMPLATE_SID || "No configurado ❌");
+        // Validar que los valores requeridos existen
+        if (!WHATSAPP_NUMBER || !TEMPLATE_SID) {
+            console.error("❌ ERROR: Faltan credenciales de Twilio.");
+            console.error("TWILIO_WHATSAPP_NUMBER:", WHATSAPP_NUMBER || "No configurado ❌");
+            console.error("TWILIO_TEMPLATE_SID:", TEMPLATE_SID || "No configurado ❌");
             return;
         }
 
+        // Enviar el mensaje a través de Twilio
         const response = await client.messages.create({
-            from: process.env.TWILIO_WHATSAPP_NUMBER,
+            from: WHATSAPP_NUMBER,
             to: `whatsapp:${to}`,
-            contentSid: process.env.TWILIO_TEMPLATE_SID,  // SID de la plantilla de Twilio
-            contentVariables: JSON.stringify(variables)  // Variables dinámicas del mensaje
+            contentSid: TEMPLATE_SID,  // Usar la plantilla de Twilio
+            contentVariables: JSON.stringify(variables)  // Pasar las variables dinámicas
         });
 
         console.log("📨 Mensaje enviado con éxito:", response.sid);
