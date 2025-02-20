@@ -898,12 +898,12 @@ exports.confirmShipment = async (req, res) => {
 
     // ✅ **Notificar al vendedor**
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `🚚 ¡El proveedor ha confirmado el envío de tu Back Order!
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${orderId}
-      🏪 Cliente: ${clientName}
-      📆 Fecha de Envío: ${shipmentDateFormatted}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerMessage = `¡El proveedor ha confirmado el envío de tu Back Order!
+      Producto: ${productName}
+      Back Order ID: #${orderId}
+      Cliente: ${clientName}
+      Fecha de Envío: ${shipmentDateFormatted}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
     } else {
@@ -912,12 +912,12 @@ exports.confirmShipment = async (req, res) => {
 
     // ✅ **Notificar al gerente**
     if (gerente && gerente.phone) {
-      const managerMessage = `📌 Un proveedor ha confirmado el envío de un producto.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${orderId}
-      🏪 Cliente: ${clientName}
-      📆 Fecha de Envío Confirmada: ${shipmentDateFormatted}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerMessage = ` Un proveedor ha confirmado el envío de un producto.
+      Producto: ${productName}
+      Back Order ID: #${orderId}
+      Cliente: ${clientName}
+      Fecha de Envío Confirmada: ${shipmentDateFormatted}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
     } else {
