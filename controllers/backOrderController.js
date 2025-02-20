@@ -13,15 +13,11 @@ const {
 } = require("../services/whatsappNotificationService");
 const { sendNotification } = require('../services/whatsappSmsService');
 
-const { notifySellerOnBackOrderCreation, notifyManagerOnBackOrderCreation } = require("../services/whatsappNotificationService");
-const { sendSMS } = require("../services/smsService"); // 📌 Asegúrate de importar el servicio de SMS
-const mongoose = require("mongoose");
-
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
 
-    // Convertir `client` a ObjectId
+    // Convertir `client` y `product` a ObjectId
     const cliente_id = new mongoose.Types.ObjectId(client);
     const vendedor_id = req.user.id; // ID del usuario autenticado
 
@@ -31,17 +27,13 @@ exports.createBackOrder = async (req, res) => {
       return res.status(404).json({ message: "Vendedor no encontrado" });
     }
 
-    // Buscar al gerente
+    // Buscar al gerente (asumimos que hay un usuario con rol "gerente")
     const gerente = await User.findOne({ role: "gerente" });
     if (!gerente) {
       return res.status(404).json({ message: "Gerente no encontrado" });
     }
 
-    // Buscar el nombre del cliente
-    const cliente = await Client.findById(cliente_id);
-    const clientName = cliente ? cliente.name : "Cliente Desconocido";
-
-    // Convertir los productos en el formato esperado
+    // Convertir los IDs de productos en el array y agregar los nuevos datos
     const formattedProducts = products.map((product) => ({
       product: new mongoose.Types.ObjectId(product.product),
       description: product.description,
@@ -59,7 +51,7 @@ exports.createBackOrder = async (req, res) => {
       history: [],
     }));
 
-    // Crear el Back Order con los datos formateados
+    // Crear el Back Order con los datos convertidos
     const backOrder = new BackOrder({
       client: cliente_id,
       products: formattedProducts,
@@ -67,43 +59,24 @@ exports.createBackOrder = async (req, res) => {
       statusGeneral: "pending",
     });
 
-    // Guardar en la base de datos
+    // Guardar el back order en la base de datos
     await backOrder.save();
 
-    // 📩 **Mensaje para el vendedor**
-    const sellerMessage = {
-      to: vendedor.phone, // 📌 Asegúrate de que `phone` está en el modelo de usuario
-      variables: {
-        first_name: vendedor.name,
-        order_id: backOrder._id.toString(),
-        client_name: clientName,
-        creation_date: new Date().toLocaleDateString(),
-        product_list: products.map(p => p.description).join(", "),
-        order_status: "Pendiente",
-        link: `https://tuplataforma.com/backorders/${backOrder._id}`, // 🔗 Enlace a la plataforma
-      }
-    };
+    // 📩 **Notificar al vendedor**
+    if (vendedor.phone) {
+      const sellerMessage = `¡Nuevo Back Order creado! ID: #${backOrder._id}. Revisa la plataforma.`;
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
 
-    // 📩 **Mensaje para el gerente**
-    const managerMessage = {
-      to: gerente.phone,
-      variables: {
-        first_name: gerente.name,
-        order_id: backOrder._id.toString(),
-        client_name: clientName,
-        creation_date: new Date().toLocaleDateString(),
-        product_list: products.map(p => p.description).join(", "),
-        order_status: "Pendiente",
-      }
-    };
-
-    // Enviar notificaciones
-    await notifySellerOnBackOrderCreation(sellerMessage);
-    await notifyManagerOnBackOrderCreation(managerMessage);
-
-    // 📲 **Enviar SMS como respaldo**
-    await sendSMS(vendedor.phone, `📢 Nuevo Back Order creado para ${clientName}. Ver detalles aquí: https://tuplataforma.com/backorders/${backOrder._id}`);
-    await sendSMS(gerente.phone, `📌 Nuevo Back Order creado por ${vendedor.name}. Revisa en la plataforma: https://tuplataforma.com/backorders/${backOrder._id}`);
+    // 📩 **Notificar al gerente**
+    if (gerente.phone) {
+      const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id}. Revisa la plataforma.`;
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
 
     res.status(201).json({ message: "Back Order creado con éxito", backOrder });
 
