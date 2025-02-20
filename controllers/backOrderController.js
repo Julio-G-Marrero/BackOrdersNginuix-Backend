@@ -17,8 +17,6 @@ const Customer = require('../models/Customer'); // Asegúrate de que la ruta sea
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
-    const cliente = await Customer.findById(backOrder.client);
-    const clientName = cliente ? cliente.name : "Cliente Desconocido";
 
     // Convertir `client` y `product` a ObjectId
     const cliente_id = new mongoose.Types.ObjectId(client);
@@ -64,7 +62,8 @@ exports.createBackOrder = async (req, res) => {
 
     // Guardar el back order en la base de datos
     await backOrder.save();
-
+    const cliente = await Customer.findById(backOrder.client);
+    const clientName = cliente ? cliente.name : "Cliente Desconocido";
     // 📩 **Notificar al vendedor**
     if (vendedor.phone) {
       const sellerMessage = `¡Nuevo Back Order creado! 
