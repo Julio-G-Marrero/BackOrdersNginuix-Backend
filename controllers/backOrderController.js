@@ -845,7 +845,7 @@ exports.confirmShipment = async (req, res) => {
     console.log("📌 Fecha de Envío Confirmada:", shipmentDate);
 
     // ✅ Buscar el Back Order en la BD
-    const backOrder = await BackOrder.findById(orderId);
+    const backOrder = await BackOrder.findById(orderId).populate("client");
     if (!backOrder) {
       console.log("❌ Back Order no encontrado.");
       return res.status(404).json({ message: "Back Order no encontrado." });
@@ -888,7 +888,44 @@ exports.confirmShipment = async (req, res) => {
     await backOrder.save();
     console.log("✅ Envío confirmado correctamente. Estado actualizado a 'in_delivery_process'.");
 
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    const productName = product.description;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+    const shipmentDateFormatted = shipmentDate ? new Date(shipmentDate).toLocaleDateString() : "Sin fecha";
+
+    // ✅ **Notificar al vendedor**
+    if (vendedor && vendedor.phone) {
+      const sellerMessage = `🚚 ¡El proveedor ha confirmado el envío de tu Back Order!
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${orderId}
+      🏪 Cliente: ${clientName}
+      📆 Fecha de Envío: ${shipmentDateFormatted}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ **Notificar al gerente**
+    if (gerente && gerente.phone) {
+      const managerMessage = `📌 Un proveedor ha confirmado el envío de un producto.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${orderId}
+      🏪 Cliente: ${clientName}
+      📆 Fecha de Envío Confirmada: ${shipmentDateFormatted}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.status(200).json({ message: "Envío confirmado y producto en proceso de surtimiento.", backOrder });
+
   } catch (error) {
     console.error("❌ Error al confirmar envío:", error);
     res.status(500).json({ message: "Error al confirmar el envío del proveedor." });
