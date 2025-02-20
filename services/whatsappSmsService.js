@@ -36,5 +36,5 @@ const sendNotification = async (to, message) => {
     //     console.error("❌ Error en el envío de notificación:", error);
     // }
 };
-
+ 
 module.exports = { sendNotification };
