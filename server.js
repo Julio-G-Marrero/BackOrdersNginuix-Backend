@@ -15,6 +15,8 @@ const stats = require("./routes/statsRoutes");
 const userRoutes = require("./routes/userRoutes"); // ✅ Nueva ruta para obtener usuarios
 const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obtener usuarios
 const notificationRoutes = require('./routes/notifications');
+const twilioRoutes = require("./routes/twilioRoutes");
+
 require('dotenv').config();
 
 dotenv.config();
@@ -50,6 +52,7 @@ app.use("/api/v1/stats", stats);
 app.use("/api/v1/users", userRoutes); // ✅ Rutas de usuarios
 app.use("/api/v1/admin", adminRoutes); 
 app.use('/api/notifications', notificationRoutes);
+app.use("/twilio", twilioRoutes);
 require('./jobs/scheduler');
 // Servidor
 const PORT = process.env.PORT || 5000;

@@ -13,7 +13,13 @@ const {
 } = require("../services/whatsappNotificationService");
 const { sendNotification } = require('../services/whatsappSmsService');
 const Customer = require('../models/Customer'); // Asegúrate de que la ruta sea correcta
+const twilio = require("twilio");
 
+// ✅ Credenciales de Twilio para llamadas
+const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";
+const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";
+const TWILIO_CALLER_NUMBER = "+19132988990"; // 📞 Número de Twilio para llamadas
+const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
@@ -668,14 +674,12 @@ exports.confirmSupplierResponse = async (req, res) => {
       return res.status(404).json({ message: "Producto no encontrado en el Back Order." });
     }
 
-    // 🔹 Actualizar cantidades, precio y fecha promesa
     product.status = "pending_approval";
     product.fulfilledQuantity = fulfilledQuantity;
     product.deniedQuantity = deniedQuantity;
     product.promiseDate = promiseDate;
-    product.price = price;  
+    product.price = price;
 
-    // 🔹 Agregar registro al historial
     product.history.push({
       action: "Confirmación de surtimiento",
       previousStatus: "in_process",
@@ -685,7 +689,6 @@ exports.confirmSupplierResponse = async (req, res) => {
       comments: `Cantidad surtida: ${fulfilledQuantity}, Denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}, Precio: $${price}`,
     });
 
-    // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
     await backOrder.save();
     console.log("✅ Surtimiento confirmado correctamente en la BD");
@@ -700,7 +703,7 @@ exports.confirmSupplierResponse = async (req, res) => {
 
     // ✅ Notificar al vendedor (WhatsApp & SMS)
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `¡Se a confirmado fecha promesa y cantidad de tu Back Order!
+      const sellerMessage = `¡Se ha confirmado fecha promesa y cantidad de tu Back Order!
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
@@ -711,13 +714,28 @@ exports.confirmSupplierResponse = async (req, res) => {
       Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
+
+      // **📞 Programar la llamada 2 minutos después**
+      setTimeout(async () => {
+        // try {
+        //   console.log(`📞 Llamando a ${vendedor.phone} en 2 minutos...`);
+        //   await client.calls.create({
+        //     url: "https://backordersnginuix-backend-production.up.railway.app/twilio/voice-message", // 🔹 Twilio obtiene el mensaje de este endpoint
+        //     to: vendedor.phone,
+        //     from: TWILIO_CALLER_NUMBER
+        //   });
+        //   console.log("✅ Llamada programada con éxito.");
+        // } catch (callError) {
+        //   console.error("❌ Error al realizar la llamada:", callError);
+        // }
+      }, 120000); // 🔹 120000 ms = 2 minutos
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
     // ✅ Notificar al gerente (WhatsApp & SMS)
     if (gerente && gerente.phone) {
-      const managerMessage = `🔔 Un proveedor ha confirmado surtimiento para un Back Order.
+      const managerMessage = `Un proveedor ha confirmado surtimiento para un Back Order.
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
@@ -728,6 +746,7 @@ exports.confirmSupplierResponse = async (req, res) => {
       Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
+      
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
