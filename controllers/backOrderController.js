@@ -6,6 +6,7 @@ const path = require('path');
 // Crear un Back Order
 const Provider = require("../models/Provider"); // ✅ Importamos el modelo de proveedores
 const Product = require('../models/Product');
+const User = require("../models/User");
 const {
   notifySellerOnBackOrderCreation,
   notifyManagerOnBackOrderCreation
