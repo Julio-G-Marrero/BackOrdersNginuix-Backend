@@ -12,11 +12,12 @@ const {
   notifyManagerOnBackOrderCreation
 } = require("../services/whatsappNotificationService");
 const { sendNotification } = require('../services/whatsappSmsService');
+const Customer = require('../models/Customer'); // Asegúrate de que la ruta sea correcta
 
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
-    const cliente = await Client.findById(backOrder.client);
+    const cliente = await Customer.findById(backOrder.client);
     const clientName = cliente ? cliente.name : "Cliente Desconocido";
 
     // Convertir `client` y `product` a ObjectId
