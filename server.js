@@ -39,25 +39,6 @@ mongoose
 app.get('/', (req, res) => {
     res.send('API Back Orders funcionando');
 });
-const twilio = require('twilio');
-
-const client = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-);
-
-(async () => {
-    try {
-        const response = await client.messages.create({
-            from: process.env.TWILIO_WHATSAPP_NUMBER,
-            to: 'whatsapp:+521234567890', // 📌 Reemplaza con tu número
-            body: '📩 Prueba de Twilio desde el backend.'
-        });
-        console.log("📨 Mensaje enviado:", response.sid);
-    } catch (error) {
-        console.error("❌ Error en la prueba de Twilio:", error);
-    }
-})();
 
 // Montar rutas
 app.use('/api/v1/products', productRoutes); // Rutas para productos
