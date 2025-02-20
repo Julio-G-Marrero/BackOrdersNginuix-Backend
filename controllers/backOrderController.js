@@ -16,6 +16,8 @@ const { sendNotification } = require('../services/whatsappSmsService');
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;
+    const cliente = await Client.findById(backOrder.client);
+    const clientName = cliente ? cliente.name : "Cliente Desconocido";
 
     // Convertir `client` y `product` a ObjectId
     const cliente_id = new mongoose.Types.ObjectId(client);
@@ -64,12 +66,15 @@ exports.createBackOrder = async (req, res) => {
 
     // 📩 **Notificar al vendedor**
     if (vendedor.phone) {
-      const sellerMessage = `¡Nuevo Back Order creado! ID: #${backOrder._id}. Revisa la plataforma.`;
+      const sellerMessage = `¡Nuevo Back Order creado! 
+      ID: #${backOrder._id} 
+      Cliente: ${clientName} 
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+  
       await sendNotification(vendedor.phone, sellerMessage);
-    } else {
+  } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
-    }
-    console.log(backOrder)
+  }
     // 📩 **Notificar al gerente**
     if (gerente.phone) {
       const managerMessage = `📌 El vendedor ${vendedor.name} ha creado un Back Order ID: #${backOrder._id}. Revisa la plataforma.`;
