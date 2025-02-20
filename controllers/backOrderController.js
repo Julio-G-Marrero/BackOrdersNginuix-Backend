@@ -700,15 +700,15 @@ exports.confirmSupplierResponse = async (req, res) => {
 
     // ✅ Notificar al vendedor (WhatsApp & SMS)
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `📢 Tu Back Order ha sido actualizado.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      🚚 Cantidad surtida: ${fulfilledQuantity}
-      ❌ Cantidad denegada: ${deniedQuantity}
-      📅 Fecha promesa: ${promiseDateFormatted}
-      💰 Precio unitario: $${price}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerMessage = `¡Se a confirmado fecha promesa y cantidad de tu Back Order!
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Cantidad surtida: ${fulfilledQuantity}
+      Cantidad denegada: ${deniedQuantity}
+      Fecha promesa: ${promiseDateFormatted}
+      Precio unitario: $${price}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
     } else {
@@ -718,14 +718,14 @@ exports.confirmSupplierResponse = async (req, res) => {
     // ✅ Notificar al gerente (WhatsApp & SMS)
     if (gerente && gerente.phone) {
       const managerMessage = `🔔 Un proveedor ha confirmado surtimiento para un Back Order.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      🚚 Cantidad surtida: ${fulfilledQuantity}
-      ❌ Cantidad denegada: ${deniedQuantity}
-      📅 Fecha promesa: ${promiseDateFormatted}
-      💰 Precio unitario: $${price}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Cantidad surtida: ${fulfilledQuantity}
+      Cantidad denegada: ${deniedQuantity}
+      Fecha promesa: ${promiseDateFormatted}
+      Precio unitario: $${price}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
     } else {
