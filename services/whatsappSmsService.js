@@ -9,30 +9,32 @@ const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
 // 🔹 **Función para enviar mensaje por WhatsApp**
 const sendWhatsAppMessage = async (to, variables) => {
-    try {
-        const response = await client.messages.create({
-            messagingServiceSid: MESSAGING_SERVICE_SID,  
-            to: `whatsapp:${to}`,
-            body: `📢 Notificación de Backorders: ${variables.message}`
-        });
+    console.log('Intento de envio whats')
+    // try {
+    //     const response = await client.messages.create({
+    //         messagingServiceSid: MESSAGING_SERVICE_SID,  
+    //         to: `whatsapp:${to}`,
+    //         body: `📢 Notificación de Backorders: ${variables.message}`
+    //     });
 
-        console.log("📨 WhatsApp enviado con éxito:", response.sid);
-        return response;
-    } catch (error) {
-        console.error("❌ Error enviando mensaje de WhatsApp:", error);
-        throw error;
-    }
+    //     console.log("📨 WhatsApp enviado con éxito:", response.sid);
+    //     return response;
+    // } catch (error) {
+    //     console.error("❌ Error enviando mensaje de WhatsApp:", error);
+    //     throw error;
+    // }
 };
 
 // 🔹 **Función para enviar notificación (solo WhatsApp)**
 const sendNotification = async (to, message) => {
-    try {
-        console.log("🚀 Enviando notificación por WhatsApp...");
-        await sendWhatsAppMessage(to, { message });
-        console.log("✅ Notificación enviada exitosamente por WhatsApp.");
-    } catch (error) {
-        console.error("❌ Error en el envío de notificación:", error);
-    }
+    console.log('Intento de envio sms')
+    // try {
+    //     console.log("🚀 Enviando notificación por WhatsApp...");
+    //     await sendWhatsAppMessage(to, { message });
+    //     console.log("✅ Notificación enviada exitosamente por WhatsApp.");
+    // } catch (error) {
+    //     console.error("❌ Error en el envío de notificación:", error);
+    // }
 };
 
 module.exports = { sendNotification };
