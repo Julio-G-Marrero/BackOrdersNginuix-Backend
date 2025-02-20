@@ -1090,14 +1090,14 @@ exports.approveOrRejectProduct = async (req, res) => {
     // ✅ **Notificar al vendedor**
     if (vendedor && vendedor.phone) {
       const sellerMessage = decision === "approve"
-        ? `✅ Tu Back Order ha sido aprobado.
-        🔹 Producto: ${productName}
-        📦 Back Order ID: #${orderId}
-        🏪 Cliente: ${clientName}
-        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`
+        ? `Tu Back Order ha sido aprobado.
+        Producto: ${productName}
+        Back Order ID: #${orderId}
+        Cliente: ${clientName}
+        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`
         : `❌ Tu producto '${productName}' en Back Order #${orderId} ha sido rechazado.
-        📝 Motivo: ${comments || "No especificado"}
-        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+        Motivo: ${comments || "No especificado"}
+        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
     } else {
@@ -1107,14 +1107,14 @@ exports.approveOrRejectProduct = async (req, res) => {
     // ✅ **Notificar al gerente**
     if (gerente && gerente.phone) {
       const managerMessage = decision === "approve"
-        ? `📌 El vendedor ${vendedor.name} ha aprobado el Back Order #${orderId}.
-        🔹 Producto: ${productName}
-        🏪 Cliente: ${clientName}
-        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`
+        ? `El vendedor ${vendedor.name} ha aprobado el Back Order #${orderId}.
+        Producto: ${productName}
+        Cliente: ${clientName}
+        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`
         : `⚠️ El vendedor ${vendedor.name} ha rechazado un producto en el Back Order #${orderId}.
-        🔹 Producto: ${productName}
-        📝 Motivo: ${comments || "No especificado"}
-        📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+        Producto: ${productName}
+        Motivo: ${comments || "No especificado"}
+        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
     } else {
