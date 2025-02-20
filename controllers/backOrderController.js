@@ -1127,7 +1127,7 @@ exports.approveOrRejectProduct = async (req, res) => {
     // ✅ **Notificar al vendedor**
     if (vendedor && vendedor.phone) {
       const sellerMessage = decision === "approve"
-        ? `Has aprobaso correctamente el surtimeinto de:
+        ? `Has aprobado correctamente el surtimeinto de:
         Producto: ${productName}
         Back Order ID: #${orderId}
         Cliente: ${clientName}
