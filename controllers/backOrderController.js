@@ -716,19 +716,19 @@ exports.confirmSupplierResponse = async (req, res) => {
       await sendNotification(vendedor.phone, sellerMessage);
 
       // **📞 Programar la llamada 2 minutos después**
-      setTimeout(async () => {
-        // try {
-        //   console.log(`📞 Llamando a ${vendedor.phone} en 2 minutos...`);
-        //   await client.calls.create({
-        //     url: "https://backordersnginuix-backend-production.up.railway.app/twilio/voice-message", // 🔹 Twilio obtiene el mensaje de este endpoint
-        //     to: vendedor.phone,
-        //     from: TWILIO_CALLER_NUMBER
-        //   });
-        //   console.log("✅ Llamada programada con éxito.");
-        // } catch (callError) {
-        //   console.error("❌ Error al realizar la llamada:", callError);
-        // }
-      }, 120000); // 🔹 120000 ms = 2 minutos
+      // setTimeout(async () => {
+      //   try {
+      //     console.log(`📞 Llamando a ${vendedor.phone} en 2 minutos...`);
+      //     await client.calls.create({
+      //       url: "https://backordersnginuix-backend-production.up.railway.app/twilio/voice-message", // 🔹 Twilio obtiene el mensaje de este endpoint
+      //       to: vendedor.phone,
+      //       from: TWILIO_CALLER_NUMBER
+      //     });
+      //     console.log("✅ Llamada programada con éxito.");
+      //   } catch (callError) {
+      //     console.error("❌ Error al realizar la llamada:", callError);
+      //   }
+      // }, 120000); // 🔹 120000 ms = 2 minutos
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
