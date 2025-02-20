@@ -1079,11 +1079,11 @@ exports.handlePartialDelivery = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
+
 exports.getAggregatedBackOrders = async (req, res) => {
   try {
-    const backOrders = await BackOrder.find().populate("client");
+    const backOrders = await BackOrder.find().populate("createdBy", "name");
 
-    // Objeto para agrupar por proveedor y producto
     const aggregatedData = {};
 
     backOrders.forEach(order => {
@@ -1098,7 +1098,7 @@ exports.getAggregatedBackOrders = async (req, res) => {
         if (!aggregatedData[provider][productName]) {
           aggregatedData[provider][productName] = {
             totalQuantity: 0,
-            details: []
+            details: [],
           };
         }
 
@@ -1107,7 +1107,8 @@ exports.getAggregatedBackOrders = async (req, res) => {
           client: order.client?.name || "Cliente desconocido",
           quantity: product.quantity,
           status: product.status,
-          orderId: order._id
+          orderId: order._id,
+          createdBy: order.createdBy ? { name: order.createdBy.name } : { name: "Usuario no asignado" }, // ✅ Agregamos el vendedor
         });
       });
     });
@@ -1115,9 +1116,9 @@ exports.getAggregatedBackOrders = async (req, res) => {
     res.json(aggregatedData);
   } catch (error) {
     console.error("Error obteniendo backorders agregados:", error);
-    res.status(500).json({ error: error });
+    res.status(500).json({ error });
   }
-}
+};
 
 exports.revertProductStatus  = async (req, res) => {
   const { orderId, productId } = req.params;
