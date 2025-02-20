@@ -1082,7 +1082,9 @@ exports.handlePartialDelivery = async (req, res) => {
 
 exports.getAggregatedBackOrders = async (req, res) => {
   try {
-    const backOrders = await BackOrder.find().populate("createdBy", "name");
+    const backOrders = await BackOrder.find()
+      .populate("createdBy", "name")
+      .populate("client", "name"); // ✅ Poblar el cliente para obtener su nombre
 
     const aggregatedData = {};
 
@@ -1104,7 +1106,7 @@ exports.getAggregatedBackOrders = async (req, res) => {
 
         aggregatedData[provider][productName].totalQuantity += product.quantity;
         aggregatedData[provider][productName].details.push({
-          client: order.client?.name || "Cliente desconocido",
+          client: order.client?.name || "Cliente desconocido", // ✅ Ahora sí debería mostrarse correctamente
           quantity: product.quantity,
           status: product.status,
           orderId: order._id,
