@@ -658,7 +658,7 @@ exports.confirmSupplierResponse = async (req, res) => {
   console.log("🟢 Precio unitario:", price);
 
   try {
-    const backOrder = await BackOrder.findById(id);
+    const backOrder = await BackOrder.findById(id).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -673,7 +673,7 @@ exports.confirmSupplierResponse = async (req, res) => {
     product.fulfilledQuantity = fulfilledQuantity;
     product.deniedQuantity = deniedQuantity;
     product.promiseDate = promiseDate;
-    product.price = price;  // 💰 Actualizar el precio en la BD
+    product.price = price;  
 
     // 🔹 Agregar registro al historial
     product.history.push({
@@ -690,7 +690,50 @@ exports.confirmSupplierResponse = async (req, res) => {
     await backOrder.save();
     console.log("✅ Surtimiento confirmado correctamente en la BD");
 
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    const productName = product.description;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+    const promiseDateFormatted = promiseDate ? new Date(promiseDate).toLocaleDateString() : "Sin fecha";
+
+    // ✅ Notificar al vendedor (WhatsApp & SMS)
+    if (vendedor && vendedor.phone) {
+      const sellerMessage = `📢 Tu Back Order ha sido actualizado.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
+      🚚 Cantidad surtida: ${fulfilledQuantity}
+      ❌ Cantidad denegada: ${deniedQuantity}
+      📅 Fecha promesa: ${promiseDateFormatted}
+      💰 Precio unitario: $${price}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ Notificar al gerente (WhatsApp & SMS)
+    if (gerente && gerente.phone) {
+      const managerMessage = `🔔 Un proveedor ha confirmado surtimiento para un Back Order.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
+      🚚 Cantidad surtida: ${fulfilledQuantity}
+      ❌ Cantidad denegada: ${deniedQuantity}
+      📅 Fecha promesa: ${promiseDateFormatted}
+      💰 Precio unitario: $${price}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.json({ message: "Confirmación de surtimiento registrada.", product });
+
   } catch (error) {
     console.error("❌ Error al confirmar surtimiento:", error);
     res.status(500).json({ message: "Error interno del servidor." });
