@@ -114,6 +114,8 @@ exports.getPendingBackOrders = async (req, res) => {
   }
 };
 
+const { sendNotification } = require("../services/whatsappService");
+
 exports.rejectProduct = async (req, res) => {
   console.log("🟢 Recibida solicitud para denegar producto");
   console.log("🔹 orderId recibido:", req.params.id);
@@ -122,10 +124,10 @@ exports.rejectProduct = async (req, res) => {
 
   const { id, productId } = req.params;
   const { comments } = req.body;
-  const userName = req.user?.name || "Usuario desconocido"; // ✅ Obtener el nombre del usuario
+  const userName = req.user?.name || "Usuario desconocido";
 
   try {
-    const backOrder = await BackOrder.findById(id);
+    const backOrder = await BackOrder.findById(id).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -138,6 +140,7 @@ exports.rejectProduct = async (req, res) => {
     const productData = await Product.findById(product.product);
     const previousStatus = product.status;
     const productName = productData?.description || "Producto sin nombre";
+    const clientName = backOrder.client?.name || "Cliente desconocido";
 
     // ✅ Marcar como denegado y registrar historial
     product.status = "denied";
@@ -172,16 +175,11 @@ exports.rejectProduct = async (req, res) => {
       const sellerMessage = `⚠️ Tu producto ha sido denegado.
       🔹 Producto: ${productName}
       📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
       📝 Motivo: ${comments || "No especificado"}
       📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
-      await sendNotification(vendedor.phone, sellerMessage); // Enviar por SMS
-      await sendWhatsAppMessage(vendedor.phone, {
-        first_name: vendedor.name,
-        order_id: id,
-        product_name: productName,
-        reason: comments || "No especificado"
-      }); // Enviar por WhatsApp
+      await sendNotification(vendedor.phone, sellerMessage);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
@@ -191,16 +189,11 @@ exports.rejectProduct = async (req, res) => {
       const managerMessage = `⚠️ Un producto ha sido denegado por ${userName}.
       🔹 Producto: ${productName}
       📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
       📝 Motivo: ${comments || "No especificado"}
       📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
-      await sendNotification(gerente.phone, managerMessage); // Enviar por SMS
-      await sendWhatsAppMessage(gerente.phone, {
-        first_name: gerente.name,
-        order_id: id,
-        product_name: productName,
-        reason: comments || "No especificado"
-      }); // Enviar por WhatsApp
+      await sendNotification(gerente.phone, managerMessage);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -211,6 +204,7 @@ exports.rejectProduct = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
+
 
 exports.getBackOrderById = async (req, res) => {
   try {
