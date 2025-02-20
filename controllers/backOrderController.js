@@ -171,11 +171,11 @@ exports.rejectProduct = async (req, res) => {
     // ✅ Enviar notificación al vendedor
     if (vendedor && vendedor.phone) {
       const sellerMessage = `⚠️ Tu producto ha sido denegado.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      📝 Motivo: ${comments || "No especificado"}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Motivo: ${comments || "No especificado"}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
 
       await sendNotification(vendedor.phone, sellerMessage);
     } else {
@@ -185,11 +185,11 @@ exports.rejectProduct = async (req, res) => {
     // ✅ Enviar notificación al gerente
     if (gerente && gerente.phone) {
       const managerMessage = `⚠️ Un producto ha sido denegado por ${userName}.
-      🔹 Producto: ${productName}
-      📦 Back Order ID: #${id}
-      🏪 Cliente: ${clientName}
-      📝 Motivo: ${comments || "No especificado"}
-      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      Producto: ${productName}
+      Back Order ID: #${id}
+      Cliente: ${clientName}
+      Motivo: ${comments || "No especificado"}
+      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
 
       await sendNotification(gerente.phone, managerMessage);
     } else {
@@ -202,7 +202,6 @@ exports.rejectProduct = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
-
 
 exports.getBackOrderById = async (req, res) => {
   try {
@@ -563,7 +562,7 @@ exports.confirmProvider = async (req, res) => {
   console.log("🟢 Usuario que asigna:", user);
 
   try {
-    const backOrder = await BackOrder.findById(id);
+    const backOrder = await BackOrder.findById(id).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -582,7 +581,7 @@ exports.confirmProvider = async (req, res) => {
     console.log("🟢 Nombre del proveedor encontrado:", providerData.name);
 
     // 🔹 Guardar SOLO el nombre del proveedor en el producto
-    product.status = "in_process"; // ✅ Estado correcto
+    product.status = "in_process"; // ✅ Estado actualizado
     product.provider = providerData.name; // 🔹 Guardamos solo el nombre
 
     // 🔹 Agregar registro al historial del producto
@@ -594,13 +593,50 @@ exports.confirmProvider = async (req, res) => {
       updatedAt: new Date(),
       comments: comments || "Proveedor asignado sin comentarios.",
     });
+
     // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
 
     await backOrder.save();
     console.log("✅ Proveedor asignado correctamente en la BD");
 
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    const productName = product.description;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+
+    // ✅ Notificar al vendedor (WhatsApp & SMS)
+    if (vendedor && vendedor.phone) {
+      const sellerMessage = `📦 Un proveedor ha sido asignado a tu Back Order.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
+      🚚 Proveedor: ${providerData.name}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+
+      await sendNotification(vendedor.phone, sellerMessage);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ Notificar al gerente (WhatsApp & SMS)
+    if (gerente && gerente.phone) {
+      const managerMessage = `🔔 Se ha asignado un proveedor a un Back Order.
+      🔹 Producto: ${productName}
+      📦 Back Order ID: #${id}
+      🏪 Cliente: ${clientName}
+      🚚 Proveedor: ${providerData.name}
+      📌 Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+
+      await sendNotification(gerente.phone, managerMessage);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.json({ message: "Proveedor asignado correctamente.", product });
+
   } catch (error) {
     console.error("❌ Error al asignar proveedor:", error);
     res.status(500).json({ message: "Error interno del servidor." });
