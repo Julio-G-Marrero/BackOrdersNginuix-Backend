@@ -1068,7 +1068,7 @@ exports.receiveProduct = async (req, res) => {
 
     // ✅ **Notificar al vendedor**
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `📦 ¡Recepción de producto confirmada!
+      const sellerMessage = `📦 ¡Recepción de producto confirmada, ya puedes recoger tu pedido en Almacen Virreyes!
       Producto: ${productName}
       Back Order ID: #${orderId}
       Cliente: ${clientName}
