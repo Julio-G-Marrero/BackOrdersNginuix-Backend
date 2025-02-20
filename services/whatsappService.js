@@ -3,27 +3,30 @@ const twilio = require('twilio');
 // ✅ Credenciales correctas
 const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";  
 const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";  
-const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  // ✅ Ahora se usa el Messaging Service
-const TEMPLATE_SID = "HX26f96a8c9873ef6b54b7dbcdf7eb2a59";  // ✅ SID de la plantilla aprobada
+const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  
+const TEMPLATE_SID = "HX26f96a8c9873ef6b54b7dbcdf7eb2a59";  // ✅ Usa el SID correcto de la plantilla
 
-// 🔹 Inicializar el cliente de Twilio
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
-// 📌 Función para enviar un mensaje de WhatsApp con una plantilla
-const sendWhatsAppMessage = async (to, variables) => {
+const sendWhatsAppMessage = async (to, firstName, date, time) => {
     try {
         if (!MESSAGING_SERVICE_SID || !TEMPLATE_SID) {
             console.error("❌ ERROR: No se configuró el Messaging Service SID o el Template SID.");
             return;
         }
 
-        const formattedVariables = JSON.stringify(variables);  // 📌 Formatear las variables para la plantilla
+        // ✅ Asegura que las variables coincidan con la plantilla
+        const formattedVariables = JSON.stringify({
+            first_name: firstName,
+            date: date,
+            time: time
+        });
 
         const response = await client.messages.create({
-            messagingServiceSid: MESSAGING_SERVICE_SID,  // 📌 Usa el servicio de mensajería configurado
+            messagingServiceSid: MESSAGING_SERVICE_SID,
             to: `whatsapp:${to}`,
-            contentSid: TEMPLATE_SID,  // 📌 Usa la plantilla aprobada
-            contentVariables: formattedVariables  // 📌 Pasa las variables necesarias para la plantilla
+            contentSid: TEMPLATE_SID,
+            contentVariables: formattedVariables
         });
 
         console.log("📨 WhatsApp enviado con éxito:", response.sid);
@@ -34,5 +37,4 @@ const sendWhatsAppMessage = async (to, variables) => {
     }
 };
 
-// 🔹 Exportar la función para su uso en otras partes del backend
 module.exports = { sendWhatsAppMessage };
