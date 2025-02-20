@@ -114,8 +114,6 @@ exports.getPendingBackOrders = async (req, res) => {
   }
 };
 
-const { sendNotification } = require("../services/whatsappService");
-
 exports.rejectProduct = async (req, res) => {
   console.log("🟢 Recibida solicitud para denegar producto");
   console.log("🔹 orderId recibido:", req.params.id);
