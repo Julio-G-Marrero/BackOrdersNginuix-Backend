@@ -162,6 +162,8 @@ exports.rejectProduct = async (req, res) => {
     const previousStatus = product.status;
     const productName = productData?.description || "Producto sin nombre";
     const clientName = backOrder.client?.name || "Cliente desconocido";
+    const orderId = id;
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha actual en formato YYYY-MM-DD
 
     // ✅ Marcar como denegado y registrar historial
     product.status = "denied";
@@ -191,35 +193,46 @@ exports.rejectProduct = async (req, res) => {
     const vendedor = await User.findById(backOrder.createdBy);
     const gerente = await User.findOne({ role: "gerente" });
 
-    // ✅ Enviar notificación al vendedor
+    // ✅ Enviar notificación al vendedor con la plantilla de Twilio
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `Tu producto ha sido denegado.
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Motivo: ${comments || "No especificado"}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Denegación de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Denegado",
+        comments: comments || "No especificado",
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ Enviar notificación al gerente
+    // ✅ Enviar notificación al gerente con la plantilla de Twilio
     if (gerente && gerente.phone) {
-      const managerMessage = `Un producto ha sido denegado por ${userName}.
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Motivo: ${comments || "No especificado"}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Denegación de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Denegado",
+        comments: `Denegado por ${userName}. ${comments || "No especificado"}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
 
     res.json({ message: "Producto denegado correctamente.", product });
+
   } catch (error) {
     console.error("❌ Error al denegar el producto:", error);
     res.status(500).json({ message: "Error interno del servidor." });
@@ -534,7 +547,7 @@ exports.confirmProviderResponse = async (req, res) => {
   const userName = req.user?.name || "Usuario desconocido"; // ✅ Obtener nombre del usuario
 
   try {
-    const backOrder = await BackOrder.findById(id);
+    const backOrder = await BackOrder.findById(id).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -545,6 +558,10 @@ exports.confirmProviderResponse = async (req, res) => {
     }
 
     const previousStatus = product.status; // ✅ Guardar estado previo
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+    const productName = product.description;
+    const orderId = id;
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha actual en formato YYYY-MM-DD
 
     // 🔹 Actualizar cantidades y fecha promesa
     product.status = "pending_approval";
@@ -557,18 +574,63 @@ exports.confirmProviderResponse = async (req, res) => {
       action: "Confirmación de surtimiento",
       previousStatus,
       newStatus: "pending_approval",
-      updatedBy: userName, // ✅ Almacena el nombre del usuario
+      updatedBy: userName,
       updatedAt: new Date(),
-      fulfilledQuantity, // ✅ Almacena la cantidad surtida
-      deniedQuantity, // ✅ Almacena la cantidad denegada
+      fulfilledQuantity,
+      deniedQuantity,
       comments: `Cantidad surtida: ${fulfilledQuantity}, Cantidad denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}`,
     });
+
     // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
     await backOrder.save();
+
+    // 📌 Buscar vendedor y gerente
+    const vendedor = await User.findById(backOrder.createdBy);
+    const gerente = await User.findOne({ role: "gerente" });
+
+    // ✅ Notificar al vendedor con la plantilla de Twilio
+    if (vendedor && vendedor.phone) {
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Confirmación de Surtimiento",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Pendiente de Aprobación",
+        comments: `Cantidad surtida: ${fulfilledQuantity}, Cantidad denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
+
+      await sendNotification(vendedor.phone, sellerNotification);
+    } else {
+      console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
+    }
+
+    // ✅ Notificar al gerente con la plantilla de Twilio
+    if (gerente && gerente.phone) {
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Confirmación de Surtimiento",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Pendiente de Aprobación",
+        comments: `Cantidad surtida: ${fulfilledQuantity}, Cantidad denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
+
+      await sendNotification(gerente.phone, managerNotification);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.json({ message: "Confirmación de surtimiento registrada.", product });
+
   } catch (error) {
-    console.error("Error al confirmar surtimiento:", error);
+    console.error("❌ Error al confirmar surtimiento:", error);
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
@@ -619,7 +681,6 @@ exports.confirmProvider = async (req, res) => {
 
     // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
-
     await backOrder.save();
     console.log("✅ Proveedor asignado correctamente en la BD");
 
@@ -629,31 +690,43 @@ exports.confirmProvider = async (req, res) => {
 
     const productName = product.description;
     const clientName = backOrder.client?.name || "Cliente desconocido";
+    const orderId = id;
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha actual en formato YYYY-MM-DD
 
-    // ✅ Notificar al vendedor (WhatsApp & SMS)
+    // ✅ Notificar al vendedor con la plantilla de Twilio
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `Un proveedor ha sido asignado a tu Back Order.
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Proveedor: ${providerData.name}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Proveedor Asignado",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "En Proceso",
+        comments: `Proveedor asignado: ${providerData.name}. ${comments || "Sin comentarios."}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ Notificar al gerente (WhatsApp & SMS)
+    // ✅ Notificar al gerente con la plantilla de Twilio
     if (gerente && gerente.phone) {
-      const managerMessage = `Se ha asignado un proveedor a un Back Order.
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Proveedor: ${providerData.name}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Proveedor Asignado",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "En Proceso",
+        comments: `Proveedor asignado: ${providerData.name}. ${comments || "Sin comentarios."}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -717,53 +790,43 @@ exports.confirmSupplierResponse = async (req, res) => {
     const productName = product.description;
     const clientName = backOrder.client?.name || "Cliente desconocido";
     const promiseDateFormatted = promiseDate ? new Date(promiseDate).toLocaleDateString() : "Sin fecha";
+    const orderId = id;
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha actual en formato YYYY-MM-DD
 
-    // ✅ Notificar al vendedor (WhatsApp & SMS)
+    // ✅ Notificar al vendedor con la plantilla de Twilio
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `¡Se ha confirmado fecha promesa y cantidad de tu Back Order!
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Cantidad surtida: ${fulfilledQuantity}
-      Cantidad denegada: ${deniedQuantity}
-      Fecha promesa: ${promiseDateFormatted}
-      Precio unitario: $${price}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Confirmación de Surtimiento",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Pendiente de Aprobación",
+        comments: `Cantidad surtida: ${fulfilledQuantity}, Denegada: ${deniedQuantity}, Fecha promesa: ${promiseDateFormatted}, Precio: $${price}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
-
-      // **📞 Programar la llamada 2 minutos después**
-      // setTimeout(async () => {
-      //   try {
-      //     console.log(`📞 Llamando a ${vendedor.phone} en 2 minutos...`);
-      //     await client.calls.create({
-      //       url: "https://backordersnginuix-backend-production.up.railway.app/twilio/voice-message", // 🔹 Twilio obtiene el mensaje de este endpoint
-      //       to: vendedor.phone,
-      //       from: TWILIO_CALLER_NUMBER
-      //     });
-      //     console.log("✅ Llamada programada con éxito.");
-      //   } catch (callError) {
-      //     console.error("❌ Error al realizar la llamada:", callError);
-      //   }
-      // }, 120000); // 🔹 120000 ms = 2 minutos
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ Notificar al gerente (WhatsApp & SMS)
+    // ✅ Notificar al gerente con la plantilla de Twilio
     if (gerente && gerente.phone) {
-      const managerMessage = `Un proveedor ha confirmado surtimiento para un Back Order.
-      Producto: ${productName}
-      Back Order ID: #${id}
-      Cliente: ${clientName}
-      Cantidad surtida: ${fulfilledQuantity}
-      Cantidad denegada: ${deniedQuantity}
-      Fecha promesa: ${promiseDateFormatted}
-      Precio unitario: $${price}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Confirmación de Surtimiento",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "Pendiente de Aprobación",
+        comments: `Cantidad surtida: ${fulfilledQuantity}, Denegada: ${deniedQuantity}, Fecha promesa: ${promiseDateFormatted}, Precio: $${price}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
-      
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -787,7 +850,7 @@ exports.vendorApproval = async (req, res) => {
     console.log(`🛒 Producto ID: ${productId}`);
     console.log(`✅ Aprobado: ${approved}`);
 
-    const backOrder = await BackOrder.findById(orderId);
+    const backOrder = await BackOrder.findById(orderId).populate("client");
     if (!backOrder) {
       return res.status(404).json({ message: "Back Order no encontrado." });
     }
@@ -797,11 +860,14 @@ exports.vendorApproval = async (req, res) => {
       return res.status(404).json({ message: "Producto no encontrado en este Back Order." });
     }
 
-    // ✅ Guardar estado previo
     const previousStatus = product.status;
+    const clientName = backOrder.client?.name || "Cliente desconocido";
+    const productName = product.description;
+    const orderIdFormatted = orderId;
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha en formato YYYY-MM-DD
 
     if (approved) {
-      product.status = "shipped"; // ✅ Ahora se espera la confirmación del proveedor antes de surtir
+      product.status = "shipped"; // ✅ Esperando confirmación de envío del proveedor
     } else {
       product.status = "denied";
       product.comments = "Rechazado por el cliente";
@@ -819,9 +885,33 @@ exports.vendorApproval = async (req, res) => {
 
     // 🔹 **Actualizar estado global del Back Order**
     updateBackOrderStatus(backOrder);
-
     await backOrder.save();
+    console.log("✅ Decisión del vendedor registrada correctamente.");
+
+    // 📌 Buscar gerente y proveedor (si aplica)
+    const gerente = await User.findOne({ role: "gerente" });
+
+    // ✅ Notificar al gerente con la plantilla de Twilio
+    if (gerente && gerente.phone) {
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: approved ? "Aprobación de Back Order" : "Rechazo de Back Order",
+        product_name: productName,
+        order_id: orderIdFormatted,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: approved ? "Aprobado por el vendedor" : "Rechazado por el vendedor",
+        comments: approved ? "El producto ha sido aprobado para envío" : "El producto ha sido rechazado por el vendedor",
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
+
+      await sendNotification(gerente.phone, managerNotification);
+    } else {
+      console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
+    }
+
     res.status(200).json({ message: "Decisión del vendedor registrada", backOrder });
+
   } catch (error) {
     console.error("❌ Error en la aprobación del vendedor:", error);
     res.status(500).json({ message: "Error en la aprobación del vendedor", error });
@@ -911,32 +1001,43 @@ exports.confirmShipment = async (req, res) => {
 
     const productName = product.description;
     const clientName = backOrder.client?.name || "Cliente desconocido";
-    const shipmentDateFormatted = shipmentDate ? new Date(shipmentDate).toLocaleDateString() : "Sin fecha";
+    const shipmentDateFormatted = shipmentDate ? new Date(shipmentDate).toISOString().split("T")[0] : "Sin fecha";
+    const eventDate = new Date().toISOString().split("T")[0]; // Fecha en formato YYYY-MM-DD
 
-    // ✅ **Notificar al vendedor**
+    // ✅ **Notificar al vendedor con la plantilla de Twilio**
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `¡El proveedor ha confirmado el envío de tu Back Order!
-      Producto: ${productName}
-      Back Order ID: #${orderId}
-      Cliente: ${clientName}
-      Fecha de Envío: ${shipmentDateFormatted}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Confirmación de Envío",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "En proceso de entrega",
+        comments: `El proveedor ha confirmado el envío para el ${shipmentDateFormatted}.`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ **Notificar al gerente**
+    // ✅ **Notificar al gerente con la plantilla de Twilio**
     if (gerente && gerente.phone) {
-      const managerMessage = ` Un proveedor ha confirmado el envío de un producto.
-      Producto: ${productName}
-      Back Order ID: #${orderId}
-      Cliente: ${clientName}
-      Fecha de Envío Confirmada: ${shipmentDateFormatted}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Confirmación de Envío",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: eventDate,
+        order_status: "En proceso de entrega",
+        comments: `El proveedor ha confirmado el envío para el ${shipmentDateFormatted}.`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -1082,33 +1183,46 @@ exports.receiveProduct = async (req, res) => {
 
     const productName = product.description;
     const clientName = backOrder.client?.name || "Cliente desconocido";
+    const receivedDate = new Date().toISOString().split("T")[0]; // Fecha en formato YYYY-MM-DD
 
-    // ✅ **Notificar al vendedor**
+    // ✅ **Notificar al vendedor con la plantilla de Twilio**
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `¡Recepción de producto confirmada, ya puedes recoger tu pedido en Almacen Virreyes!
-      Producto: ${productName}
-      Back Order ID: #${orderId}
-      Cliente: ${clientName}
-      Cantidad recibida: ${receivedQuantity}
-      Cantidad no recibida: ${product.deniedQuantity}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: "Recepción de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: receivedDate,
+        order_status: newStatus === "fulfilled" ? "Recibido" : "Parcialmente recibido",
+        comments: receivedQuantity === 0 
+          ? "No se recibió el producto." 
+          : `Se recibieron ${receivedQuantity} unidades. ${product.deniedQuantity > 0 ? `Faltan ${product.deniedQuantity} unidades.` : ""}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ **Notificar al gerente**
+    // ✅ **Notificar al gerente con la plantilla de Twilio**
     if (gerente && gerente.phone) {
-      const managerMessage = `Un producto ha sido recibido en el almacén.
-      Producto: ${productName}
-      Back Order ID: #${orderId}
-      Cliente: ${clientName}
-      Cantidad recibida: ${receivedQuantity}
-      Cantidad no recibida: ${product.deniedQuantity}
-      Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: "Recepción de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: receivedDate,
+        order_status: newStatus === "fulfilled" ? "Recibido" : "Parcialmente recibido",
+        comments: receivedQuantity === 0 
+          ? "No se recibió el producto." 
+          : `Se recibieron ${receivedQuantity} unidades. ${product.deniedQuantity > 0 ? `Faltan ${product.deniedQuantity} unidades.` : ""}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
@@ -1178,37 +1292,44 @@ exports.approveOrRejectProduct = async (req, res) => {
 
     const productName = product.description;
     const clientName = backOrder.client?.name || "Cliente desconocido";
+    const decisionDate = new Date().toISOString().split("T")[0]; // Formato YYYY-MM-DD
 
-    // ✅ **Notificar al vendedor**
+    // ✅ **Notificar al vendedor con la plantilla de Twilio**
     if (vendedor && vendedor.phone) {
-      const sellerMessage = decision === "approve"
-        ? `Has aprobado correctamente el surtimeinto de:
-        Producto: ${productName}
-        Back Order ID: #${orderId}
-        Cliente: ${clientName}
-        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`
-        : `❌ Tu producto '${productName}' en Back Order #${orderId} ha sido rechazado.
-        Motivo: ${comments || "No especificado"}
-        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders`;
+      const sellerNotification = {
+        recipient_name: vendedor.name || "Vendedor",
+        event_type: decision === "approve" ? "Aprobación de Producto" : "Rechazo de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: decisionDate,
+        order_status: decision === "approve" ? "Aprobado" : "Rechazado",
+        comments: decision === "approve" ? "Aprobado para envío" : comments || "No especificado",
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
+      };
 
-      await sendNotification(vendedor.phone, sellerMessage);
+      await sendNotification(vendedor.phone, sellerNotification);
     } else {
       console.warn("⚠️ Vendedor no tiene número de teléfono registrado.");
     }
 
-    // ✅ **Notificar al gerente**
+    // ✅ **Notificar al gerente con la plantilla de Twilio**
     if (gerente && gerente.phone) {
-      const managerMessage = decision === "approve"
-        ? `El vendedor ${vendedor.name} ha aprobado el Back Order #${orderId}.
-        Producto: ${productName}
-        Cliente: ${clientName}
-        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`
-        : `⚠️ El vendedor ${vendedor.name} ha rechazado un producto en el Back Order #${orderId}.
-        Producto: ${productName}
-        Motivo: ${comments || "No especificado"}
-        Revisa la plataforma: https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase`;
+      const managerNotification = {
+        recipient_name: gerente.name || "Gerente",
+        event_type: decision === "approve" ? "Aprobación de Producto" : "Rechazo de Producto",
+        product_name: productName,
+        order_id: orderId,
+        client_name: clientName,
+        event_date: decisionDate,
+        order_status: decision === "approve" ? "Aprobado" : "Rechazado",
+        comments: decision === "approve"
+          ? `El vendedor ${vendedor.name} aprobó el producto.`
+          : `El vendedor ${vendedor.name} rechazó el producto. Motivo: ${comments || "No especificado"}`,
+        platform_url: "https://backordersnginuix-frontend-production.up.railway.app/backorders/purchase"
+      };
 
-      await sendNotification(gerente.phone, managerMessage);
+      await sendNotification(gerente.phone, managerNotification);
     } else {
       console.warn("⚠️ Gerente no tiene número de teléfono registrado.");
     }
