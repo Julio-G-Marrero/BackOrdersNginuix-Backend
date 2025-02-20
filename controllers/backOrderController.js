@@ -609,7 +609,7 @@ exports.confirmProvider = async (req, res) => {
 
     // ✅ Notificar al vendedor (WhatsApp & SMS)
     if (vendedor && vendedor.phone) {
-      const sellerMessage = `📦 Un proveedor ha sido asignado a tu Back Order.
+      const sellerMessage = `Un proveedor ha sido asignado a tu Back Order.
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
@@ -623,7 +623,7 @@ exports.confirmProvider = async (req, res) => {
 
     // ✅ Notificar al gerente (WhatsApp & SMS)
     if (gerente && gerente.phone) {
-      const managerMessage = `🔔 Se ha asignado un proveedor a un Back Order.
+      const managerMessage = `Se ha asignado un proveedor a un Back Order.
       Producto: ${productName}
       Back Order ID: #${id}
       Cliente: ${clientName}
