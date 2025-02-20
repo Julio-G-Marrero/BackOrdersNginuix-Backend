@@ -1,12 +1,12 @@
 const twilio = require('twilio');
 
-// 🔒 Hardcodeamos las credenciales para pruebas (Úsalo solo temporalmente)
-const ACCOUNT_SID = "SKad33a226d9dc3e76c270a445a02ff9a2";
-const AUTH_TOKEN = "T5z3He3Lpteo3yFLbotREZsmWOgP5lTf";
-const WHATSAPP_NUMBER = "whatsapp:+14155238886";  // 🔹 Número de WhatsApp de Twilio
-const TEMPLATE_SID = "HXb5b62575e6e4ff6129ad7c8efe1f983e";  // 🔹 SID de la plantilla de Twilio
+// ✅ Usa el `ACCOUNT_SID` correcto (debe comenzar con "AC")
+const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";  // ✅ Este es el correcto
+const AUTH_TOKEN = "f8f7a2e9638c787f698e5dab72a4273f";     // 🔹 Reemplázalo con el correcto
+const WHATSAPP_NUMBER = "whatsapp:+14155238886";  // ✅ Número de WhatsApp de Twilio
+const TEMPLATE_SID = "HXb5b62575e6e4ff6129ad7c8efe1f983e";  // ✅ SID de la plantilla de Twilio
 
-// Configurar cliente de Twilio con credenciales fijas
+// 🔹 Configurar cliente de Twilio con credenciales correctas
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
 const sendWhatsAppMessage = async (to, variables) => {
