@@ -19,9 +19,6 @@ const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obte
 const notificationRoutes = require('./routes/notifications');
 const twilioRoutes = require("./routes/twilioRoutes");
 
-
-dotenv.config();
-
 const app = express();
 
 // Middleware
