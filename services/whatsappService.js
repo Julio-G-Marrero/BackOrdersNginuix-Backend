@@ -4,7 +4,7 @@ const twilio = require('twilio');
 const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";  
 const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";  
 const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  
-const TEMPLATE_SID = "HX26f96a8c9873ef6b54b7dbcdf7eb2a59";  // ✅ Usa el SID correcto de la plantilla
+const TEMPLATE_SID = "HXa05161e99077c171008f5b6da30b843b";  // ✅ Usa el SID correcto de la plantilla
 
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
