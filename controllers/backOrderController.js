@@ -1508,33 +1508,36 @@ exports.getAggregatedBackOrders = async (req, res) => {
   try {
     const backOrders = await BackOrder.find()
       .populate("createdBy", "name")
-      .populate("client", "name"); // ✅ Poblar el cliente para obtener su nombre
+      .populate("client", "name");
 
     const aggregatedData = {};
 
     backOrders.forEach(order => {
       order.products.forEach(product => {
         const provider = product.provider;
-        const productName = product.description;
+        // Usamos internalCode como SKU y description para la descripción
+        const sku = product.internalCode; 
+        const description = product.description;
 
         if (!aggregatedData[provider]) {
           aggregatedData[provider] = {};
         }
 
-        if (!aggregatedData[provider][productName]) {
-          aggregatedData[provider][productName] = {
+        if (!aggregatedData[provider][sku]) {
+          aggregatedData[provider][sku] = {
+            description: description || "Sin descripción",
             totalQuantity: 0,
-            details: [],
+            details: []
           };
         }
 
-        aggregatedData[provider][productName].totalQuantity += product.quantity;
-        aggregatedData[provider][productName].details.push({
-          client: order.client?.name || "Cliente desconocido", // ✅ Ahora sí debería mostrarse correctamente
+        aggregatedData[provider][sku].totalQuantity += product.quantity;
+        aggregatedData[provider][sku].details.push({
+          client: order.client?.name || "Cliente desconocido",
           quantity: product.quantity,
           status: product.status,
           orderId: order._id,
-          createdBy: order.createdBy ? { name: order.createdBy.name } : { name: "Usuario no asignado" }, // ✅ Agregamos el vendedor
+          createdBy: order.createdBy ? { name: order.createdBy.name } : { name: "Usuario no asignado" }
         });
       });
     });
@@ -1545,6 +1548,7 @@ exports.getAggregatedBackOrders = async (req, res) => {
     res.status(500).json({ error });
   }
 };
+
 
 exports.revertProductStatus  = async (req, res) => {
   const { orderId, productId } = req.params;
