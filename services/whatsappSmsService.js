@@ -12,29 +12,20 @@ const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 // 🔹 **Función para enviar mensaje por WhatsApp con la plantilla aprobada**
 const sendWhatsAppMessage = async (to, variables) => {
     try {
-        // ✅ Formatear fecha correctamente
-        const formattedDate = new Date(variables.event_date).toISOString().split('T')[0];
-
-        // ✅ Validar URL de la plataforma
-        const validPlatformURL = variables.platform_url.startsWith("http")
-            ? variables.platform_url
-            : `https://${variables.platform_url}`;
-
-        // ✅ Enviar mensaje usando el servicio de mensajería
         const response = await client.messages.create({
             to: `whatsapp:${to}`,
-            messagingServiceSid: MESSAGING_SERVICE_SID,  // ✅ Usa el servicio de mensajería de Twilio
-            contentSid: WHATSAPP_TEMPLATE_SID,  // ✅ Usa la plantilla aprobada
+            messagingServiceSid: MESSAGING_SERVICE_SID,  
+            contentSid: WHATSAPP_TEMPLATE_SID,  
             contentVariables: JSON.stringify({
                 recipient_name: variables.recipient_name || "Usuario",
                 event_type: variables.event_type || "Actualización",
-                product_name: variables.product_name || "Varios productos",
+                product_name: variables.product_name || "Producto no especificado",
                 order_id: variables.order_id || "N/A",
                 client_name: variables.client_name || "Cliente desconocido",
-                event_date: formattedDate,
+                event_date: variables.event_date || new Date().toISOString().split('T')[0],
                 order_status: variables.order_status || "Pendiente",
                 comments: variables.comments || "Sin comentarios",
-                platform_url: validPlatformURL
+                platform_url: variables.platform_url || "https://backordersnginuix-frontend-production.up.railway.app"
             })
         });
 
