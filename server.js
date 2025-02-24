@@ -1,19 +1,8 @@
 // Archivo: server.js
-const fs = require('fs');
 
-if (process.env.NODE_ENV === "production") {
-    const envConfig = `
-    TWILIO_ACCOUNT_SID=${process.env.TWILIO_ACCOUNT_SID}
-    TWILIO_AUTH_TOKEN=${process.env.TWILIO_AUTH_TOKEN}
-    TWILIO_MESSAGING_SERVICE_SID=${process.env.TWILIO_MESSAGING_SERVICE_SID}
-    TWILIO_WHATSAPP_TEMPLATE_SID=${process.env.TWILIO_WHATSAPP_TEMPLATE_SID}
-    `;
-    fs.writeFileSync('.env', envConfig);
-}
-
-require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const cors = require('cors');
 
 // Importar rutas
@@ -27,6 +16,10 @@ const userRoutes = require("./routes/userRoutes"); // ✅ Nueva ruta para obtene
 const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obtener usuarios
 const notificationRoutes = require('./routes/notifications');
 const twilioRoutes = require("./routes/twilioRoutes");
+
+require('dotenv').config();
+
+dotenv.config();
 
 const app = express();
 
@@ -61,17 +54,6 @@ app.use("/api/v1/admin", adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
 require('./jobs/scheduler');
-
-process.env.TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
-process.env.TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
-process.env.TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
-process.env.TWILIO_WHATSAPP_TEMPLATE_SID = process.env.TWILIO_WHATSAPP_TEMPLATE_SID || "";
-
-console.log("🔹 TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID);
-console.log("🔹 TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "✅ Cargado" : "❌ No disponible");
-console.log("🔹 TWILIO_MESSAGING_SERVICE_SID:", process.env.TWILIO_MESSAGING_SERVICE_SID);
-console.log("🔹 TWILIO_WHATSAPP_TEMPLATE_SID:", process.env.TWILIO_WHATSAPP_TEMPLATE_SID);
-
 // Servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
