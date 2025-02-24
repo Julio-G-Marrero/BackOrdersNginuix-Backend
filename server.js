@@ -54,6 +54,12 @@ app.use("/api/v1/admin", adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
 require('./jobs/scheduler');
+
+console.log("🔹 TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID);
+console.log("🔹 TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "✅ Cargado" : "❌ No disponible");
+console.log("🔹 TWILIO_MESSAGING_SERVICE_SID:", process.env.TWILIO_MESSAGING_SERVICE_SID);
+console.log("🔹 TWILIO_WHATSAPP_TEMPLATE_SID:", process.env.TWILIO_WHATSAPP_TEMPLATE_SID);
+
 // Servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
