@@ -1,7 +1,17 @@
 // Archivo: server.js
-const dotenv = require('dotenv');
-dotenv.config();
+const fs = require('fs');
 
+if (process.env.NODE_ENV === "production") {
+    const envConfig = `
+    TWILIO_ACCOUNT_SID=${process.env.TWILIO_ACCOUNT_SID}
+    TWILIO_AUTH_TOKEN=${process.env.TWILIO_AUTH_TOKEN}
+    TWILIO_MESSAGING_SERVICE_SID=${process.env.TWILIO_MESSAGING_SERVICE_SID}
+    TWILIO_WHATSAPP_TEMPLATE_SID=${process.env.TWILIO_WHATSAPP_TEMPLATE_SID}
+    `;
+    fs.writeFileSync('.env', envConfig);
+}
+
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
