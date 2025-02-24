@@ -1,10 +1,11 @@
+require('dotenv').config(); // Cargar variables de entorno desde .env
 const twilio = require('twilio');
 
-// ✅ Credenciales Twilio
-const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";
-const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";
-const WHATSAPP_TEMPLATE_SID = "HXa05161e99077c171008f5b6da30b843b";  // ✅ Plantilla aprobada
-const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  // ✅ Servicio de mensajería Twilio
+// ✅ Credenciales Twilio desde variables de entorno
+const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const WHATSAPP_TEMPLATE_SID = process.env.TWILIO_WHATSAPP_TEMPLATE_SID;  // ✅ Plantilla aprobada
+const MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID;  // ✅ Servicio de mensajería Twilio
 
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
