@@ -55,6 +55,11 @@ app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
 require('./jobs/scheduler');
 
+process.env.TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
+process.env.TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
+process.env.TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+process.env.TWILIO_WHATSAPP_TEMPLATE_SID = process.env.TWILIO_WHATSAPP_TEMPLATE_SID || "";
+
 console.log("🔹 TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID);
 console.log("🔹 TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "✅ Cargado" : "❌ No disponible");
 console.log("🔹 TWILIO_MESSAGING_SERVICE_SID:", process.env.TWILIO_MESSAGING_SERVICE_SID);
