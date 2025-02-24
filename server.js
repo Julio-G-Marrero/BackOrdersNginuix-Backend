@@ -1,4 +1,5 @@
 // Archivo: server.js
+require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -17,7 +18,6 @@ const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obte
 const notificationRoutes = require('./routes/notifications');
 const twilioRoutes = require("./routes/twilioRoutes");
 
-require('dotenv').config();
 
 dotenv.config();
 
