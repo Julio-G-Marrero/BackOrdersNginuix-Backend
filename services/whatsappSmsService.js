@@ -14,12 +14,12 @@ const sendWhatsAppMessage = async (to, variables) => {
     try {
         const response = await client.messages.create({
             to: `whatsapp:${to}`,
-            messagingServiceSid: MESSAGING_SERVICE_SID,  
-            contentSid: WHATSAPP_TEMPLATE_SID,  
+            messagingServiceSid:MESSAGING_SERVICE_SID,
+            contentSid: WHATSAPP_TEMPLATE_SID,
             contentVariables: JSON.stringify({
                 recipient_name: variables.recipient_name || "Usuario",
                 event_type: variables.event_type || "Actualización",
-                product_name: variables.product_name || "Producto no especificado",
+                product_name: variables.product_name || "Producto desconocido",
                 order_id: variables.order_id || "N/A",
                 client_name: variables.client_name || "Cliente desconocido",
                 event_date: variables.event_date || new Date().toISOString().split('T')[0],
@@ -36,6 +36,7 @@ const sendWhatsAppMessage = async (to, variables) => {
         throw error;
     }
 };
+
 
 // 🔹 **Función para enviar notificación usando la plantilla**
 const sendNotification = async (to, eventDetails) => {
