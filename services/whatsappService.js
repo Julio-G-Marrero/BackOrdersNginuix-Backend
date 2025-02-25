@@ -4,7 +4,7 @@ const twilio = require('twilio');
 const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";  
 const AUTH_TOKEN = "0d25ff1303c76835e7de148705ae6b0e";  
 const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  
-const TEMPLATE_SID = "HX07fcf0689e950941c280d4fe221eb0bb";  // PLantilla
+const TEMPLATE_SID = "HX07fcf0689e950941c280d4fe221eb0bb";  // PLantilla whatsapp
 
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 
