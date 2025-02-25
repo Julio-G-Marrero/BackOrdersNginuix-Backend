@@ -1549,7 +1549,6 @@ exports.getAggregatedBackOrders = async (req, res) => {
   }
 };
 
-
 exports.revertProductStatus  = async (req, res) => {
   const { orderId, productId } = req.params;
   const { previousStatus, updatedBy } = req.body;
