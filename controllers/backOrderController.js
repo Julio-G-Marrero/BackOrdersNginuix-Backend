@@ -15,11 +15,6 @@ const { sendNotification } = require('../services/whatsappSmsService');
 const Customer = require('../models/Customer'); // Asegúrate de que la ruta sea correcta
 const twilio = require("twilio");
 
-// ✅ Credenciales de Twilio para llamadas
-const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";
-const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";
-const TWILIO_CALLER_NUMBER = "+19132988990"; // 📞 Número de Twilio para llamadas
-const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
 exports.createBackOrder = async (req, res) => {
   try {
     const { client, products } = req.body;

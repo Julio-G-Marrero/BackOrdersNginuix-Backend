@@ -4,7 +4,7 @@ const twilio = require('twilio');
 // ✅ Credenciales Twilio desde variables de entorno
 const ACCOUNT_SID = 'ACa5af537e7de8d375fc557c8417d8fb4a';
 const AUTH_TOKEN = '0d25ff1303c76835e7de148705ae6b0e';
-const WHATSAPP_TEMPLATE_SID = 'HXa05161e99077c171008f5b6da30b843b';  // ✅ Plantilla aprobada
+const WHATSAPP_TEMPLATE_SID = 'HX07fcf0689e950941c280d4fe221eb0bb';  // ✅ Plantilla aprobada
 const MESSAGING_SERVICE_SID = 'MG2cb5f038c8998278b6003300a47adcdd';  // ✅ Servicio de mensajería Twilio
 
 const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
