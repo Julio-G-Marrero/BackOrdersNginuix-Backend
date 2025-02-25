@@ -2,7 +2,7 @@ const twilio = require('twilio');
 
 // ✅ Credenciales correctas
 const ACCOUNT_SID = "ACa5af537e7de8d375fc557c8417d8fb4a";  
-const AUTH_TOKEN = "6286567a34bd77675277674b31e4e074";  
+const AUTH_TOKEN = "0d25ff1303c76835e7de148705ae6b0e";  
 const MESSAGING_SERVICE_SID = "MG2cb5f038c8998278b6003300a47adcdd";  
 const TEMPLATE_SID = "HX5048f2313a2808b5b112fee75a71e9aa";  // PLantilla
 
