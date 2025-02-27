@@ -73,16 +73,18 @@ exports.importCustomers = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    const customers = [];
+    let customers = [];
+    let insertedCount = 0;
+    let duplicateCount = 0;
+    let errorCount = 0;
+    const batchSize = 500; // Procesaremos en bloques de 500 registros
 
-    // Leer y procesar el archivo CSV
-    fs.createReadStream(filePath)
+    const stream = fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (row) => {
-        // Verifica que las columnas requeridas existan en el archivo CSV
         if (!row['No. Cliente'] || !row['Nombre'] || !row['Direccion']) {
-          console.error('Error en el archivo CSV: Falta información requerida');
-          return;
+          errorCount++;
+          return; // Ignorar registros con datos incompletos
         }
 
         customers.push({
@@ -91,34 +93,49 @@ exports.importCustomers = async (req, res) => {
           address: row['Direccion'],
           phone: row['Telefono'] || '', // Campo opcional
         });
+
+        if (customers.length >= batchSize) {
+          stream.pause(); // Pausar la lectura mientras insertamos
+          processBatch(customers)
+            .then(() => {
+              customers = [];
+              stream.resume(); // Reanudar la lectura después de insertar
+            })
+            .catch((err) => {
+              console.error('Error al procesar lote:', err);
+            });
+        }
       })
       .on('end', async () => {
-        try {
-          // Obtener los números de cliente únicos del CSV
-          const customerNumbers = customers.map(c => c.customerNumber);
-
-          // Consultar en la base de datos cuáles clientes ya existen
-          const existingCustomers = await Customer.find({ customerNumber: { $in: customerNumbers } }).select('customerNumber');
-          const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
-
-          // Filtrar solo los clientes que no existen
-          const newCustomers = customers.filter(c => !existingCustomerNumbers.has(c.customerNumber));
-
-          if (newCustomers.length > 0) {
-            // Insertar solo los nuevos clientes
-            await Customer.insertMany(newCustomers, { ordered: false });
-            res.status(200).json({ message: `Clientes importados correctamente. Se ignoraron ${customers.length - newCustomers.length} duplicados.` });
-          } else {
-            res.status(200).json({ message: 'No se importaron nuevos clientes, todos estaban registrados.' });
-          }
-        } catch (error) {
-          console.error('Error al guardar clientes:', error);
-          res.status(500).json({ message: 'Error al guardar clientes', error });
+        if (customers.length > 0) {
+          await processBatch(customers);
         }
+        res.status(200).json({ 
+          message: `Importación completada: ${insertedCount} clientes insertados, ${duplicateCount} duplicados ignorados, ${errorCount} con errores.`
+        });
 
-        // Elimina el archivo temporal después de procesarlo
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(filePath); // Elimina el archivo después de procesarlo
       });
+
+    async function processBatch(batch) {
+      try {
+        // Obtener los números de cliente únicos en este lote
+        const customerNumbers = batch.map(c => c.customerNumber);
+        const existingCustomers = await Customer.find({ customerNumber: { $in: customerNumbers } }).select('customerNumber');
+        const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
+
+        // Filtrar solo los clientes que no existen
+        const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
+
+        if (newCustomers.length > 0) {
+          const result = await Customer.insertMany(newCustomers, { ordered: false });
+          insertedCount += result.length;
+        }
+        duplicateCount += batch.length - newCustomers.length;
+      } catch (error) {
+        console.error('Error en batch:', error);
+      }
+    }
   } catch (error) {
     console.error('Error al procesar el archivo CSV:', error);
     res.status(500).json({ message: 'Error al procesar el archivo CSV', error });
