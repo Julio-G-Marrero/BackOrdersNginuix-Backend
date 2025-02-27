@@ -65,6 +65,7 @@ exports.deleteCustomer = async (req, res) => {
     }
 };
 
+
 exports.importCustomers = async (req, res) => {
   try {
     if (!req.file) {
@@ -73,19 +74,25 @@ exports.importCustomers = async (req, res) => {
 
     const filePath = req.file.path;
     let customers = [];
-    const batchSize = 500; // Procesar en bloques de 500 registros para evitar errores
+    let totalRead = 0; // Conteo de registros leídos del CSV
+    let totalInserted = 0; // Conteo de registros insertados en MongoDB
+    let totalDuplicates = 0; // Conteo de registros duplicados ignorados
+    const batchSize = 500; // Procesar en bloques de 500 registros
+
+    console.log("📂 Iniciando importación del archivo:", filePath);
 
     const stream = fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (row) => {
-        // Permitir dirección y teléfono vacíos, solo validar "No. Cliente" y "Nombre"
         if (!row['No. Cliente'] || !row['Nombre']) return;
+
+        totalRead++; // Contar registros leídos
 
         customers.push({
           customerNumber: row['No. Cliente'],
           name: row['Nombre'],
-          address: row['Direccion'] || '', // Permitir vacío
-          phone: row['Telefono'] || '',   // Permitir vacío
+          address: row['Direccion'] || '',
+          phone: row['Telefono'] || '',
         });
 
         if (customers.length >= batchSize) {
@@ -95,14 +102,17 @@ exports.importCustomers = async (req, res) => {
               customers = [];
               stream.resume();
             })
-            .catch((err) => console.error('Error en batch:', err));
+            .catch((err) => console.error('🚨 Error en batch:', err));
         }
       })
       .on('end', async () => {
         if (customers.length > 0) {
           await processBatch(customers);
         }
-        res.status(200).json({ message: 'Importación completada correctamente.' });
+        console.log(`✅ Fin de importación: Leídos: ${totalRead}, Insertados: ${totalInserted}, Duplicados: ${totalDuplicates}`);
+        res.status(200).json({ 
+          message: `Importación completada: ${totalInserted} clientes insertados, ${totalDuplicates} duplicados ignorados.` 
+        });
         fs.unlinkSync(filePath);
       });
 
@@ -110,25 +120,30 @@ exports.importCustomers = async (req, res) => {
       try {
         const customerNumbers = batch.map(c => c.customerNumber);
 
-        // Filtrar clientes existentes SOLO por número de cliente
+        // 🔹 Verificar cuántos ya existen en MongoDB
         const existingCustomers = await Customer.find({ 
           customerNumber: { $in: customerNumbers } 
         }).select('customerNumber');
 
         const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
+        totalDuplicates += existingCustomerNumbers.size; // Contar duplicados
 
-        // Filtrar solo los nuevos clientes que no existen en la base de datos
+        // Filtrar solo los nuevos clientes
         const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
 
         if (newCustomers.length > 0) {
-          await Customer.insertMany(newCustomers, { ordered: false });
+          const result = await Customer.insertMany(newCustomers, { ordered: false });
+          totalInserted += result.length;
+          console.log(`🟢 Insertados ${result.length} registros.`);
+        } else {
+          console.log("⚠ No hay nuevos registros para insertar en este batch.");
         }
       } catch (error) {
-        console.error('Error en batch:', error);
+        console.error('🚨 Error en batch:', error);
       }
     }
   } catch (error) {
-    console.error('Error al procesar el archivo CSV:', error);
+    console.error('🚨 Error al procesar el archivo CSV:', error);
     res.status(500).json({ message: 'Error al procesar el archivo CSV', error });
   }
 };
