@@ -16,7 +16,8 @@ const userRoutes = require("./routes/userRoutes"); // ✅ Nueva ruta para obtene
 const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obtener usuarios
 const notificationRoutes = require('./routes/notifications');
 const twilioRoutes = require("./routes/twilioRoutes");
-
+// Importar modelos
+const Customer = require('./models/Customer'); // Importa el modelo de clientes
 require('dotenv').config();
 
 dotenv.config();
