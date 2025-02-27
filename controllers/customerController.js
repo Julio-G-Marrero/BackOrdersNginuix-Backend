@@ -74,10 +74,11 @@ exports.importCustomers = async (req, res) => {
 
     const filePath = req.file.path;
     let customers = [];
-    let totalRead = 0; // Conteo de registros leídos del CSV
-    let totalInserted = 0; // Conteo de registros insertados en MongoDB
-    let totalDuplicates = 0; // Conteo de registros duplicados ignorados
-    const batchSize = 500; // Procesar en bloques de 500 registros
+    let totalRead = 0;
+    let totalInserted = 0;
+    let totalFailed = 0;
+    let errorList = [];  // Guardar errores específicos por registro
+    const batchSize = 500;
 
     console.log("📂 Iniciando importación del archivo:", filePath);
 
@@ -86,7 +87,7 @@ exports.importCustomers = async (req, res) => {
       .on('data', (row) => {
         if (!row['No. Cliente'] || !row['Nombre']) return;
 
-        totalRead++; // Contar registros leídos
+        totalRead++;
 
         customers.push({
           customerNumber: row['No. Cliente'],
@@ -109,10 +110,19 @@ exports.importCustomers = async (req, res) => {
         if (customers.length > 0) {
           await processBatch(customers);
         }
-        console.log(`✅ Fin de importación: Leídos: ${totalRead}, Insertados: ${totalInserted}, Duplicados: ${totalDuplicates}`);
-        res.status(200).json({ 
-          message: `Importación completada: ${totalInserted} clientes insertados, ${totalDuplicates} duplicados ignorados.` 
+        console.log(`✅ Fin de importación: Leídos: ${totalRead}, Insertados: ${totalInserted}, Fallidos: ${totalFailed}`);
+
+        // 🔹 Guardar errores en un archivo para revisión
+        if (errorList.length > 0) {
+          fs.writeFileSync('errores_importacion.json', JSON.stringify(errorList, null, 2));
+          console.log("⚠ Se generó el archivo 'errores_importacion.json' con los registros fallidos.");
+        }
+
+        res.status(200).json({
+          message: `Importación completada: ${totalInserted} clientes insertados, ${totalFailed} fallidos.`,
+          errors: errorList.length > 0 ? "Revisa errores_importacion.json para más detalles." : "Sin errores."
         });
+
         fs.unlinkSync(filePath);
       });
 
@@ -120,23 +130,27 @@ exports.importCustomers = async (req, res) => {
       try {
         const customerNumbers = batch.map(c => c.customerNumber);
 
-        // 🔹 Verificar cuántos ya existen en MongoDB
         const existingCustomers = await Customer.find({ 
           customerNumber: { $in: customerNumbers } 
         }).select('customerNumber');
 
         const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
-        totalDuplicates += existingCustomerNumbers.size; // Contar duplicados
 
-        // Filtrar solo los nuevos clientes
         const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
 
         if (newCustomers.length > 0) {
-          const result = await Customer.insertMany(newCustomers, { ordered: false });
-          totalInserted += result.length;
-          console.log(`🟢 Insertados ${result.length} registros.`);
-        } else {
-          console.log("⚠ No hay nuevos registros para insertar en este batch.");
+          try {
+            const result = await Customer.insertMany(newCustomers, { ordered: false });
+            totalInserted += result.length;
+            console.log(`🟢 Insertados ${result.length} registros.`);
+          } catch (mongoError) {
+            console.error("🚨 Error al insertar en MongoDB:", mongoError);
+            totalFailed += newCustomers.length;
+            errorList.push(...newCustomers.map(c => ({
+              customerNumber: c.customerNumber,
+              error: mongoError.message
+            })));
+          }
         }
       } catch (error) {
         console.error('🚨 Error en batch:', error);
