@@ -594,7 +594,7 @@ exports.confirmProviderResponse = async (req, res) => {
         client_name: clientName,
         event_date: eventDate,
         order_status: "Pendiente de Aprobación",
-        comments: `Cantidad surtida: ${fulfilledQuantity}, Cantidad denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}`,
+        comments: `Para continuar con el proceso aprueba el surtimiento,cantidad surtida: ${fulfilledQuantity}, Cantidad denegada: ${deniedQuantity}, Fecha promesa: ${promiseDate}`,
         platform_url: "https://backordersnginuix-frontend-production.up.railway.app/vendedor/backorders"
       };
 

@@ -79,7 +79,7 @@ exports.importCustomers = async (req, res) => {
     fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (row) => {
-        // Verifica que las columnas existan en el archivo CSV
+        // Verifica que las columnas requeridas existan en el archivo CSV
         if (!row['No. Cliente'] || !row['Nombre'] || !row['Direccion']) {
           console.error('Error en el archivo CSV: Falta información requerida');
           return;
@@ -94,9 +94,23 @@ exports.importCustomers = async (req, res) => {
       })
       .on('end', async () => {
         try {
-          // Inserta los datos en la base de datos
-          await Customer.insertMany(customers);
-          res.status(200).json({ message: 'Clientes importados correctamente' });
+          // Obtener los números de cliente únicos del CSV
+          const customerNumbers = customers.map(c => c.customerNumber);
+
+          // Consultar en la base de datos cuáles clientes ya existen
+          const existingCustomers = await Customer.find({ customerNumber: { $in: customerNumbers } }).select('customerNumber');
+          const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
+
+          // Filtrar solo los clientes que no existen
+          const newCustomers = customers.filter(c => !existingCustomerNumbers.has(c.customerNumber));
+
+          if (newCustomers.length > 0) {
+            // Insertar solo los nuevos clientes
+            await Customer.insertMany(newCustomers, { ordered: false });
+            res.status(200).json({ message: `Clientes importados correctamente. Se ignoraron ${customers.length - newCustomers.length} duplicados.` });
+          } else {
+            res.status(200).json({ message: 'No se importaron nuevos clientes, todos estaban registrados.' });
+          }
         } catch (error) {
           console.error('Error al guardar clientes:', error);
           res.status(500).json({ message: 'Error al guardar clientes', error });
