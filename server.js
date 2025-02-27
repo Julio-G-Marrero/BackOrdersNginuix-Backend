@@ -43,16 +43,16 @@ app.get('/', (req, res) => {
     res.send('API Back Orders funcionando');
 });
 // 🚀 **Ruta Temporal para Eliminar TODOS los Clientes**
-app.delete('/api/v1/customers/delete-all', async (req, res) => {
-    try {
-        const result = await Customer.deleteMany({});
-        console.log(`Clientes eliminados: ${result.deletedCount}`);
-        res.status(200).json({ message: `Clientes eliminados: ${result.deletedCount}` });
-    } catch (error) {
-        console.error('Error al eliminar clientes:', error);
-        res.status(500).json({ message: 'Error al eliminar clientes', error });
-    }
-});
+// app.delete('/api/v1/customers/delete-all', async (req, res) => {
+//     try {
+//         const result = await Customer.deleteMany({});
+//         console.log(`Clientes eliminados: ${result.deletedCount}`);
+//         res.status(200).json({ message: `Clientes eliminados: ${result.deletedCount}` });
+//     } catch (error) {
+//         console.error('Error al eliminar clientes:', error);
+//         res.status(500).json({ message: 'Error al eliminar clientes', error });
+//     }
+// });
 
 
 // Montar rutas
