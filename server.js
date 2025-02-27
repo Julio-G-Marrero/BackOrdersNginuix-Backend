@@ -53,6 +53,29 @@ app.use("/api/v1/users", userRoutes); // ✅ Rutas de usuarios
 app.use("/api/v1/admin", adminRoutes); 
 app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
+
+const Customer = require('./models/Customer'); // Asegúrate de importar el modelo
+
+app.use("/eliminar", 
+    async function deleteAllCustomers() {
+      try {
+        await mongoose.connect('mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<database>', {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        });
+    
+        const result = await Customer.deleteMany({});
+        console.log(`Clientes eliminados: ${result.deletedCount}`);
+        
+        mongoose.connection.close();
+      } catch (error) {
+        console.error('Error al eliminar clientes:', error);
+      }
+    }
+);
+
+
+
 require('./jobs/scheduler');
 // Servidor
 const PORT = process.env.PORT || 5000;
