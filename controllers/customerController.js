@@ -72,29 +72,27 @@ exports.importCustomers = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    const customers = [];
-    const batchSize = 500; // Procesar en bloques para mejorar rendimiento
+    let customers = [];
+    const batchSize = 500; // Procesar en bloques de 500 registros para evitar errores
 
     const stream = fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (row) => {
-        // ⚠ Permitir direcciones vacías
-        if (!row['No. Cliente'] || !row['Nombre']) {
-          return; // Ignorar registros sin número de cliente o nombre
-        }
+        // Permitir dirección y teléfono vacíos, solo validar "No. Cliente" y "Nombre"
+        if (!row['No. Cliente'] || !row['Nombre']) return;
 
         customers.push({
           customerNumber: row['No. Cliente'],
           name: row['Nombre'],
-          address: row['Direccion'] || '', // Ahora se permite dirección vacía
-          phone: row['Telefono'] || '',   // Ahora se permite teléfono vacío
+          address: row['Direccion'] || '', // Permitir vacío
+          phone: row['Telefono'] || '',   // Permitir vacío
         });
 
         if (customers.length >= batchSize) {
           stream.pause();
           processBatch(customers)
             .then(() => {
-              customers.length = 0;
+              customers = [];
               stream.resume();
             })
             .catch((err) => console.error('Error en batch:', err));
@@ -105,18 +103,21 @@ exports.importCustomers = async (req, res) => {
           await processBatch(customers);
         }
         res.status(200).json({ message: 'Importación completada correctamente.' });
-
         fs.unlinkSync(filePath);
       });
 
     async function processBatch(batch) {
       try {
+        const customerNumbers = batch.map(c => c.customerNumber);
+
+        // Filtrar clientes existentes SOLO por número de cliente
         const existingCustomers = await Customer.find({ 
-          customerNumber: { $in: batch.map(c => c.customerNumber) } 
+          customerNumber: { $in: customerNumbers } 
         }).select('customerNumber');
 
         const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
 
+        // Filtrar solo los nuevos clientes que no existen en la base de datos
         const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
 
         if (newCustomers.length > 0) {
