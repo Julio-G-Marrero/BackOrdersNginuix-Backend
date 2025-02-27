@@ -65,7 +65,6 @@ exports.deleteCustomer = async (req, res) => {
     }
 };
 
-
 exports.importCustomers = async (req, res) => {
   try {
     if (!req.file) {
@@ -76,8 +75,9 @@ exports.importCustomers = async (req, res) => {
     let customers = [];
     let totalRead = 0;
     let totalInserted = 0;
+    let totalUpdated = 0;
     let totalFailed = 0;
-    let errorList = [];  // Guardar errores específicos por registro
+    let errorList = [];  
     const batchSize = 500;
 
     console.log("📂 Iniciando importación del archivo:", filePath);
@@ -110,16 +110,16 @@ exports.importCustomers = async (req, res) => {
         if (customers.length > 0) {
           await processBatch(customers);
         }
-        console.log(`✅ Fin de importación: Leídos: ${totalRead}, Insertados: ${totalInserted}, Fallidos: ${totalFailed}`);
+        console.log(`✅ Fin de importación: Leídos: ${totalRead}, Insertados: ${totalInserted}, Actualizados: ${totalUpdated}, Fallidos: ${totalFailed}`);
 
-        // 🔹 Guardar errores en un archivo para revisión
+        // Guardar errores en un archivo si hubo fallos
         if (errorList.length > 0) {
           fs.writeFileSync('errores_importacion.json', JSON.stringify(errorList, null, 2));
           console.log("⚠ Se generó el archivo 'errores_importacion.json' con los registros fallidos.");
         }
 
         res.status(200).json({
-          message: `Importación completada: ${totalInserted} clientes insertados, ${totalFailed} fallidos.`,
+          message: `Importación completada: ${totalInserted} clientes insertados, ${totalUpdated} actualizados, ${totalFailed} fallidos.`,
           errors: errorList.length > 0 ? "Revisa errores_importacion.json para más detalles." : "Sin errores."
         });
 
@@ -128,32 +128,27 @@ exports.importCustomers = async (req, res) => {
 
     async function processBatch(batch) {
       try {
-        const customerNumbers = batch.map(c => c.customerNumber);
+        for (const customer of batch) {
+          const result = await Customer.updateOne(
+            { customerNumber: customer.customerNumber }, // Buscar por customerNumber
+            { $set: customer }, // Si existe, actualiza datos
+            { upsert: true } // Si no existe, lo inserta
+          );
 
-        const existingCustomers = await Customer.find({ 
-          customerNumber: { $in: customerNumbers } 
-        }).select('customerNumber');
-
-        const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
-
-        const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
-
-        if (newCustomers.length > 0) {
-          try {
-            const result = await Customer.insertMany(newCustomers, { ordered: false });
-            totalInserted += result.length;
-            console.log(`🟢 Insertados ${result.length} registros.`);
-          } catch (mongoError) {
-            console.error("🚨 Error al insertar en MongoDB:", mongoError);
-            totalFailed += newCustomers.length;
-            errorList.push(...newCustomers.map(c => ({
-              customerNumber: c.customerNumber,
-              error: mongoError.message
-            })));
+          if (result.upsertedCount > 0) {
+            totalInserted++; // Insertado como nuevo cliente
+          } else if (result.modifiedCount > 0) {
+            totalUpdated++; // Cliente existente actualizado
           }
         }
+        console.log(`🟢 Procesados ${batch.length} registros.`);
       } catch (error) {
-        console.error('🚨 Error en batch:', error);
+        console.error("🚨 Error al insertar/actualizar en MongoDB:", error);
+        totalFailed += batch.length;
+        errorList.push(...batch.map(c => ({
+          customerNumber: c.customerNumber,
+          error: error.message
+        })));
       }
     }
   } catch (error) {
