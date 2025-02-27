@@ -67,71 +67,61 @@ exports.deleteCustomer = async (req, res) => {
 
 exports.importCustomers = async (req, res) => {
   try {
-    // Verifica que el archivo se haya recibido
     if (!req.file) {
       return res.status(400).json({ message: 'No se proporcionó ningún archivo' });
     }
 
     const filePath = req.file.path;
-    let customers = [];
-    let insertedCount = 0;
-    let duplicateCount = 0;
-    let errorCount = 0;
-    const batchSize = 500; // Procesaremos en bloques de 500 registros
+    const customers = [];
+    const batchSize = 500; // Procesar en bloques para mejorar rendimiento
 
     const stream = fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (row) => {
-        if (!row['No. Cliente'] || !row['Nombre'] || !row['Direccion']) {
-          errorCount++;
-          return; // Ignorar registros con datos incompletos
+        // ⚠ Permitir direcciones vacías
+        if (!row['No. Cliente'] || !row['Nombre']) {
+          return; // Ignorar registros sin número de cliente o nombre
         }
 
         customers.push({
           customerNumber: row['No. Cliente'],
           name: row['Nombre'],
-          address: row['Direccion'],
-          phone: row['Telefono'] || '', // Campo opcional
+          address: row['Direccion'] || '', // Ahora se permite dirección vacía
+          phone: row['Telefono'] || '',   // Ahora se permite teléfono vacío
         });
 
         if (customers.length >= batchSize) {
-          stream.pause(); // Pausar la lectura mientras insertamos
+          stream.pause();
           processBatch(customers)
             .then(() => {
-              customers = [];
-              stream.resume(); // Reanudar la lectura después de insertar
+              customers.length = 0;
+              stream.resume();
             })
-            .catch((err) => {
-              console.error('Error al procesar lote:', err);
-            });
+            .catch((err) => console.error('Error en batch:', err));
         }
       })
       .on('end', async () => {
         if (customers.length > 0) {
           await processBatch(customers);
         }
-        res.status(200).json({ 
-          message: `Importación completada: ${insertedCount} clientes insertados, ${duplicateCount} duplicados ignorados, ${errorCount} con errores.`
-        });
+        res.status(200).json({ message: 'Importación completada correctamente.' });
 
-        fs.unlinkSync(filePath); // Elimina el archivo después de procesarlo
+        fs.unlinkSync(filePath);
       });
 
     async function processBatch(batch) {
       try {
-        // Obtener los números de cliente únicos en este lote
-        const customerNumbers = batch.map(c => c.customerNumber);
-        const existingCustomers = await Customer.find({ customerNumber: { $in: customerNumbers } }).select('customerNumber');
+        const existingCustomers = await Customer.find({ 
+          customerNumber: { $in: batch.map(c => c.customerNumber) } 
+        }).select('customerNumber');
+
         const existingCustomerNumbers = new Set(existingCustomers.map(c => c.customerNumber));
 
-        // Filtrar solo los clientes que no existen
         const newCustomers = batch.filter(c => !existingCustomerNumbers.has(c.customerNumber));
 
         if (newCustomers.length > 0) {
-          const result = await Customer.insertMany(newCustomers, { ordered: false });
-          insertedCount += result.length;
+          await Customer.insertMany(newCustomers, { ordered: false });
         }
-        duplicateCount += batch.length - newCustomers.length;
       } catch (error) {
         console.error('Error en batch:', error);
       }
