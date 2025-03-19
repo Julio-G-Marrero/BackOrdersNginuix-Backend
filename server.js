@@ -68,7 +68,7 @@ app.use("/api/v1/users", userRoutes); // ✅ Rutas de usuarios
 app.use("/api/v1/admin", adminRoutes); 
 app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
-app.use("/backorder-drafts", backOrderDraftRoutes);
+app.use("/api/v1/backorder-drafts", backOrderDraftRoutes);
 require('./jobs/scheduler');
 // Servidor
 const PORT = process.env.PORT || 5000;
