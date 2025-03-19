@@ -13,18 +13,23 @@ exports.getDraft = async (req, res) => {
 
 // Guardar o actualizar borrador
 exports.saveDraft = async (req, res) => {
-  try {
-    const { userId, client, products } = req.body;
-    await BackOrderDraft.findOneAndUpdate(
-      { userId },
-      { client, products, createdAt: new Date() },
-      { upsert: true, new: true }
-    );
-    res.json({ message: "Borrador guardado correctamente" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al guardar el borrador" });
-  }
-};
+    try {
+      const { userId, client, products } = req.body;
+  
+      console.log("📩 Recibiendo solicitud para actualizar borrador:", { userId, client, products });
+  
+      await BackOrderDraft.findOneAndUpdate(
+        { userId },
+        { client: client || null, products }, // ✅ Permite `null` en `client`
+        { upsert: true, new: true }
+      );
+  
+      res.json({ message: "Borrador actualizado correctamente" });
+    } catch (error) {
+      console.error("❌ Error al actualizar el borrador:", error);
+      res.status(500).json({ error: "Error al actualizar el borrador" });
+    }
+};    
 
 // Eliminar borrador después de crear Back Order
 exports.deleteDraft = async (req, res) => {
