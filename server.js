@@ -16,6 +16,8 @@ const userRoutes = require("./routes/userRoutes"); // ✅ Nueva ruta para obtene
 const adminRoutes = require("./routes/adminRoutes"); // ✅ Nueva ruta para obtener usuarios
 const notificationRoutes = require('./routes/notifications');
 const twilioRoutes = require("./routes/twilioRoutes");
+const backOrderDraftRoutes = require("./routes/backOrderDraftRoutes");
+
 // Importar modelos
 const Customer = require('./models/Customer'); // Importa el modelo de clientes
 require('dotenv').config();
@@ -66,6 +68,7 @@ app.use("/api/v1/users", userRoutes); // ✅ Rutas de usuarios
 app.use("/api/v1/admin", adminRoutes); 
 app.use('/api/notifications', notificationRoutes);
 app.use("/twilio", twilioRoutes);
+app.use("/backorder-drafts", backOrderDraftRoutes);
 require('./jobs/scheduler');
 // Servidor
 const PORT = process.env.PORT || 5000;
